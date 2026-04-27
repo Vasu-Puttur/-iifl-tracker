@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: #232736;
+    --border2: #2d3245;
+    --text: #e8eaf2;
+    --muted: #7880a0;
+    --accent: #4f8ef7;
+    --accent2: #7eb8f7;
+    --gold: #f0b429;
+    --green: #34d399;
+    --red: #f87171;
+    --zerodha: #387ed1;
+    --groww: #00d09c;
+    --kotak: #e63950;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #0d0f14 0%, #131826 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .logo-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .header-tag {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── TABS ── */
+  .tab-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 16px 20px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .tab.active .dot, .tab:hover .dot { background: var(--accent); }
+  #tab-zerodha .dot { --accent: var(--zerodha); }
+  #tab-groww .dot { --accent: var(--groww); }
+  #tab-kotak .dot { --accent: var(--kotak); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    header { padding: 0 16px; }
+    .tab-bar { padding: 0 16px; }
+  }
+
+  /* ── FORM FIELDS ── */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    color: #7eb8f7;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+  }
+  .field select option { background: var(--surface2); }
+
+  /* ── STAT BOXES ── */
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-value.green { color: var(--green); }
+  .stat-value.gold { color: var(--gold); }
+  .stat-value.red { color: var(--red); }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td {
+    padding: 10px 14px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  tbody td.num { text-align: right; font-weight: 500; }
+  tbody td.green { color: var(--green); font-weight: 600; }
+  tfoot td {
+    padding: 10px 14px;
+    font-weight: 700;
+    color: var(--gold);
+    border-top: 1px solid var(--border2);
+    font-variant-numeric: tabular-nums;
+    background: rgba(240,180,41,0.04);
+  }
+  tfoot td.num { text-align: right; }
+
+  /* ── BROKERAGE SECTION ── */
+  .broker-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .broker-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .broker-badge.zerodha { color: var(--zerodha); border-color: var(--zerodha); background: rgba(56,126,209,0.1); }
+  .broker-badge.groww   { color: var(--groww);   border-color: var(--groww);   background: rgba(0,208,156,0.1); }
+  .broker-badge.kotak   { color: var(--kotak);   border-color: var(--kotak);   background: rgba(230,57,80,0.1); }
+
+  .charge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .charge-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .charge-name { font-size: 11px; color: var(--muted); margin-bottom: 3px; font-weight: 500; }
+  .charge-val { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  /* ── TRADE TABLE ── */
+  .trade-inputs { margin-bottom: 20px; }
+  .trade-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 90px 110px 110px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .trade-row .row-num {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    font-weight: 600;
+  }
+  .trade-row input {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #7eb8f7;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .trade-row input:focus { border-color: var(--accent); }
+  .trade-row input.sell-input { color: var(--gold); }
+  .trade-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 90px 110px 110px;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .trade-header span {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .results-table { margin-top: 24px; }
+  .results-table thead th { font-size: 10px; }
+
+  /* ── COMPARISON ── */
+  .comparison-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .cmp-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .cmp-name { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .cmp-name.zerodha { color: var(--zerodha); }
+  .cmp-name.groww   { color: var(--groww); }
+  .cmp-name.kotak   { color: var(--kotak); }
+  .cmp-val { font-size: 20px; font-weight: 600; }
+
+  /* ── SECTION DIVIDER ── */
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 16px;
+    margin-top: 4px;
+  }
+  .info-banner {
+    background: rgba(79,142,247,0.07);
+    border: 1px solid rgba(79,142,247,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 20px;
+  }
+
+  /* ── INTEREST PAGE LAYOUT ── */
+  .interest-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .interest-layout { grid-template-columns: 1fr; }
+  }
+
+  /* ── SCROLL ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── TOOLTIP ── */
+  .tip {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: var(--border2);
+    border-radius: 50%;
+    font-size: 9px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 14px;
+    cursor: default;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* P&L colors */
+  .profit { color: var(--green); }
+  .loss   { color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">₹</div>
+    <div>
+      <div class="logo-text">FinCalc</div>
+      <div class="logo-badge">India Financial Calculator</div>
+    </div>
+  </div>
+  <div class="header-tag">Delivery Trades · Indian Market</div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" id="tab-interest" onclick="switchTab('interest')">
+    <div class="dot"></div> Interest Calculator
+  </div>
+  <div class="tab" id="tab-zerodha" onclick="switchTab('zerodha')">
+    <div class="dot"></div> Zerodha
+  </div>
+  <div class="tab" id="tab-groww" onclick="switchTab('groww')">
+    <div class="dot"></div> Groww
+  </div>
+  <div class="tab" id="tab-kotak" onclick="switchTab('kotak')">
+    <div class="dot"></div> Kotak Securities
+  </div>
+</div>
+
+<main>
+
+<!-- ═══════════════ INTEREST CALCULATOR ═══════════════ -->
+<div class="page active" id="page-interest">
+  <div style="margin-bottom:24px;">
+    <div class="section-title">Interest Calculator — Dashboard</div>
+    <div class="info-banner">ℹ️ Enter principal, rate, and duration to compute Simple &amp; Compound interest. Dates are optional — fill both for Bank FD method.</div>
+  </div>
+
+  <div class="interest-layout">
+    <!-- LEFT: INPUTS + RESULTS -->
+    <div>
+      <div class="card">
+        <div class="card-title">Inputs</div>
+        <div class="field">
+          <label>Principal Amount (₹)</label>
+          <input type="number" id="i_principal" value="500000" oninput="calcInterest()">
+        </div>
+        <div class="field">
+          <label>Annual Rate of Interest (%)</label>
+          <input type="number" id="i_rate" value="2.5" step="0.01" oninput="calcInterest()">
+        </div>
+        <div class="field">
+          <label>Duration Value</label>
+          <input type="number" id="i_durval" value="365" oninput="calcInterest()">
+        </div>
+        <div class="field">
+          <label>Duration Unit</label>
+          <select id="i_durunit" onchange="calcInterest()">
+            <option value="Days" selected>Days</option>
+            <option value="Months">Months</option>
+            <option value="Years">Years</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field">
+            <label>Investment Date (optional)</label>
+            <input type="date" id="i_startdate" oninput="calcInterest()">
+          </div>
+          <div class="field">
+            <label>Maturity Date (optional)</label>
+            <input type="date" id="i_enddate" oninput="calcInterest()">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Computed Duration</div>
+        <div class="grid-3" style="gap:10px;">
+          <div class="stat">
+            <div class="stat-label">Days</div>
+            <div class="stat-value" id="r_days">365</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Months</div>
+            <div class="stat-value" id="r_months">12.17</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Years</div>
+            <div class="stat-value" id="r_years">1.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Simple Interest</div>
+        <div class="grid-2" style="gap:10px;">
+          <div class="stat">
+            <div class="stat-label">Daily Interest (₹)</div>
+            <div class="stat-value gold" id="r_si_daily">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Total Interest (₹)</div>
+            <div class="stat-value green" id="r_si_total">—</div>
+          </div>
+          <div class="stat" style="grid-column:1/-1;">
+            <div class="stat-label">Total Amount Receivable (₹)</div>
+            <div class="stat-value" id="r_si_amount">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Compound Interest — Annually</div>
+        <div class="grid-3" style="gap:10px;">
+          <div class="stat">
+            <div class="stat-label">Total Interest (₹)</div>
+            <div class="stat-value green" id="r_cia_total">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Total Amount (₹)</div>
+            <div class="stat-value" id="r_cia_amount">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Extra vs SI (₹)</div>
+            <div class="stat-value" id="r_cia_extra">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Compound Interest — Quarterly</div>
+        <div class="grid-3" style="gap:10px;">
+          <div class="stat">
+            <div class="stat-label">Total Interest (₹)</div>
+            <div class="stat-value green" id="r_ciq_total">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Total Amount (₹)</div>
+            <div class="stat-value" id="r_ciq_amount">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Extra vs SI (₹)</div>
+            <div class="stat-value" id="r_ciq_extra">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="fd-card">
+        <div class="card-title">★ Bank FD Method <span class="tip">?</span></div>
+        <div class="info-banner" style="margin-bottom:12px;">Fill both Investment &amp; Maturity dates above to activate Bank FD calculation (RBI: exact calendar quarters + SI on remainder).</div>
+        <div class="grid-3" style="gap:10px;" id="fd-results">
+          <div class="stat"><div class="stat-label">Full Calendar Quarters</div><div class="stat-value" id="r_fd_qtrs">—</div></div>
+          <div class="stat"><div class="stat-label">Remaining Days</div><div class="stat-value" id="r_fd_rem">—</div></div>
+          <div class="stat"><div class="stat-label">Maturity Amount (₹)</div><div class="stat-value" id="r_fd_amount">—</div></div>
+          <div class="stat"><div class="stat-label">Interest Earned (₹)</div><div class="stat-value green" id="r_fd_int">—</div></div>
+          <div class="stat"><div class="stat-label">Diff vs CI Quarterly (₹)</div><div class="stat-value" id="r_fd_diff">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: MONTHLY BREAKDOWN -->
+    <div>
+      <div class="card">
+        <div class="card-title">Monthly Income Breakdown</div>
+        <div class="info-banner" style="font-size:11px;">These inputs are independent — use any principal / rate for the monthly breakdown below.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div class="field">
+            <label>Principal Amount (₹)</label>
+            <input type="number" id="m_principal" value="600000" oninput="calcMonthly()">
+          </div>
+          <div class="field">
+            <label>Annual Rate (%)</label>
+            <input type="number" id="m_rate" value="9.95" step="0.01" oninput="calcMonthly()">
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid-4" style="margin-bottom:20px;" id="quick-stats">
+          <div class="stat">
+            <div class="stat-label">Highest Monthly (₹)</div>
+            <div class="stat-value green" id="m_high">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Lowest Monthly (₹)</div>
+            <div class="stat-value red" id="m_low">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Average Monthly (₹)</div>
+            <div class="stat-value" id="m_avg">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Daily Interest (₹)</div>
+            <div class="stat-value gold" id="m_daily">—</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Month</th>
+                <th style="text-align:right">Days</th>
+                <th style="text-align:right">Monthly Interest (₹)</th>
+                <th style="text-align:right">Cumulative (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="monthly-tbody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3"><strong>Annual Total</strong></td>
+                <td class="num" id="m_annual">—</td>
+                <td class="num" id="m_annual_cum">—</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ZERODHA ═══════════════ -->
+<div class="page" id="page-zerodha">
+  <div class="broker-header">
+    <div class="section-title">Brokerage &amp; Trade P&amp;L Calculator</div>
+    <span class="broker-badge zerodha">Zerodha</span>
+  </div>
+  <div id="zerodha-content"></div>
+</div>
+
+<!-- ═══════════════ GROWW ═══════════════ -->
+<div class="page" id="page-groww">
+  <div class="broker-header">
+    <div class="section-title">Brokerage &amp; Trade P&amp;L Calculator</div>
+    <span class="broker-badge groww">Groww</span>
+  </div>
+  <div id="groww-content"></div>
+</div>
+
+<!-- ═══════════════ KOTAK ═══════════════ -->
+<div class="page" id="page-kotak">
+  <div class="broker-header">
+    <div class="section-title">Brokerage &amp; Trade P&amp;L Calculator</div>
+    <span class="broker-badge kotak">Kotak Securities</span>
+  </div>
+  <div id="kotak-content"></div>
+</div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════
+//  TAB SWITCHING
+// ════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('page-' + tab).classList.add('active');
+}
+
+// ════════════════════════════════════════
+//  FORMATTING HELPERS
+// ════════════════════════════════════════
+function fmt(v, dec=2) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return '₹' + v.toLocaleString('en-IN', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+function fmtN(v, dec=2) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return v.toLocaleString('en-IN', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+function fmtSign(v) {
+  if (isNaN(v)) return '—';
+  const s = '₹' + Math.abs(v).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return v >= 0 ? '+' + s : '-' + s;
+}
+
+// ════════════════════════════════════════
+//  INTEREST CALCULATOR
+// ════════════════════════════════════════
+function calcInterest() {
+  const P = parseFloat(document.getElementById('i_principal').value) || 0;
+  const r = (parseFloat(document.getElementById('i_rate').value) || 0) / 100;
+  let durVal = parseFloat(document.getElementById('i_durval').value) || 0;
+  const durUnit = document.getElementById('i_durunit').value;
+  const s = document.getElementById('i_startdate').value;
+  const e = document.getElementById('i_enddate').value;
+
+  // Duration in days
+  let days;
+  if (s && e) {
+    const d1 = new Date(s), d2 = new Date(e);
+    days = Math.max(0, Math.round((d2 - d1) / 86400000));
+  } else {
+    if (durUnit === 'Days')   days = durVal;
+    if (durUnit === 'Months') days = durVal * 30.4375;
+    if (durUnit === 'Years')  days = durVal * 365;
+  }
+  const months = days / 30.4375;
+  const years  = days / 365;
+
+  document.getElementById('r_days').textContent   = fmtN(days, 0);
+  document.getElementById('r_months').textContent = fmtN(months, 2);
+  document.getElementById('r_years').textContent  = fmtN(years, 2);
+
+  // Simple Interest
+  const siDaily = P * r / 365;
+  const siTotal = siDaily * days;
+  const siAmount = P + siTotal;
+  document.getElementById('r_si_daily').textContent  = fmtN(siDaily, 2);
+  document.getElementById('r_si_total').textContent  = fmtN(siTotal, 2);
+  document.getElementById('r_si_amount').textContent = fmtN(siAmount, 2);
+
+  // CI Annual
+  const ciaTotal  = P * (Math.pow(1 + r, years) - 1);
+  const ciaAmount = P + ciaTotal;
+  document.getElementById('r_cia_total').textContent  = fmtN(ciaTotal, 2);
+  document.getElementById('r_cia_amount').textContent = fmtN(ciaAmount, 2);
+  const ciaExtra = ciaTotal - siTotal;
+  const el = document.getElementById('r_cia_extra');
+  el.textContent = (ciaExtra >= 0 ? '+' : '') + fmtN(ciaExtra, 2);
+  el.className = 'stat-value ' + (ciaExtra >= 0 ? 'green' : 'red');
+
+  // CI Quarterly
+  const ciqTotal  = P * (Math.pow(1 + r/4, 4*years) - 1);
+  const ciqAmount = P + ciqTotal;
+  document.getElementById('r_ciq_total').textContent  = fmtN(ciqTotal, 2);
+  document.getElementById('r_ciq_amount').textContent = fmtN(ciqAmount, 2);
+  const ciqExtra = ciqTotal - siTotal;
+  const el2 = document.getElementById('r_ciq_extra');
+  el2.textContent = (ciqExtra >= 0 ? '+' : '') + fmtN(ciqExtra, 2);
+  el2.className = 'stat-value ' + (ciqExtra >= 0 ? 'green' : 'red');
+
+  // Bank FD
+  if (s && e) {
+    const d1 = new Date(s), d2 = new Date(e);
+    // Count full calendar quarters
+    let qtrs = 0, tempDate = new Date(d1);
+    while (true) {
+      const next = new Date(tempDate);
+      next.setMonth(next.getMonth() + 3);
+      if (next > d2) break;
+      qtrs++;
+      tempDate = next;
+    }
+    const remDays = Math.round((d2 - tempDate) / 86400000);
+    const fdAmountQtr = P * Math.pow(1 + r/4, qtrs);
+    const fdSIRem = fdAmountQtr * r * remDays / 365;
+    const fdTotal = fdAmountQtr + fdSIRem;
+    const fdInt   = fdTotal - P;
+    const fdDiff  = fdInt - ciqTotal;
+    document.getElementById('r_fd_qtrs').textContent   = qtrs;
+    document.getElementById('r_fd_rem').textContent    = remDays;
+    document.getElementById('r_fd_amount').textContent = fmtN(fdTotal, 2);
+    document.getElementById('r_fd_int').textContent    = fmtN(fdInt, 2);
+    const el3 = document.getElementById('r_fd_diff');
+    el3.textContent = (fdDiff >= 0 ? '+' : '') + fmtN(fdDiff, 2);
+    el3.className = 'stat-value ' + (fdDiff >= 0 ? 'green' : 'red');
+  } else {
+    ['r_fd_qtrs','r_fd_rem','r_fd_amount','r_fd_int','r_fd_diff'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+  }
+
+  calcMonthly();
+}
+
+function calcMonthly() {
+  const P = parseFloat(document.getElementById('m_principal').value) || 0;
+  const r = (parseFloat(document.getElementById('m_rate').value) || 0) / 100;
+  const dailyRate = r / 365;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+  let cumulative = 0;
+  let tbody = '';
+  let allInts = [];
+  for (let i = 0; i < 12; i++) {
+    const d = daysInMonth[i];
+    const interest = P * dailyRate * d;
+    cumulative += interest;
+    allInts.push(interest);
+    tbody += `<tr>
+      <td>${i+1}</td>
+      <td>${months[i]}</td>
+      <td class="num">${d}</td>
+      <td class="num green">${fmtN(interest, 2)}</td>
+      <td class="num">${fmtN(cumulative, 2)}</td>
+    </tr>`;
+  }
+  document.getElementById('monthly-tbody').innerHTML = tbody;
+  const annual = allInts.reduce((a,b)=>a+b,0);
+  document.getElementById('m_annual').textContent     = fmtN(annual, 2);
+  document.getElementById('m_annual_cum').textContent = fmtN(annual, 2);
+  document.getElementById('m_high').textContent  = fmtN(Math.max(...allInts), 2);
+  document.getElementById('m_low').textContent   = fmtN(Math.min(...allInts), 2);
+  document.getElementById('m_avg').textContent   = fmtN(annual/12, 2);
+  document.getElementById('m_daily').textContent = fmtN(P * dailyRate, 2);
+}
+
+// ════════════════════════════════════════
+//  BROKER CALCULATORS
+// ════════════════════════════════════════
+
+// Charge schedules
+const BROKERS = {
+  zerodha: {
+    name: 'Zerodha',
+    brokPct: 0,          // free delivery
+    brokFixed: 0,
+    sttBuy: 0.001,
+    sttSell: 0.001,
+    nseTxn: 0.0000297,
+    sebi: 0.000001,
+    gstBase: 0.18,       // on brok+nse+sebi
+    stampBuy: 0.00015,
+    dpCharge: 15.93,     // per sell transaction
+    charges: [
+      {name: 'Brokerage', val: '₹0.00  (FREE for Delivery)'},
+      {name: 'STT', val: '0.10% Buy + 0.10% Sell'},
+      {name: 'NSE Txn Charge', val: '0.00297% on trade value'},
+      {name: 'SEBI Charge', val: '₹10/crore = 0.0001%'},
+      {name: 'GST', val: '18% on (Brok + NSE + SEBI)'},
+      {name: 'Stamp Duty', val: '0.015% on Buy only'},
+      {name: 'DP Charge', val: '₹13.50 + 18% GST = ₹15.93/sell'},
+    ]
+  },
+  groww: {
+    name: 'Groww',
+    brokPct: 0,
+    brokFixed: 20,       // ₹20 flat brokerage both sides
+    sttBuy: 0.001,
+    sttSell: 0.001,
+    nseTxn: 0.0000297,
+    sebi: 0.000001,
+    gstBase: 0.18,
+    stampBuy: 0.00015,
+    dpCharge: 23.60,     // ₹20 + 18% GST
+    charges: [
+      {name: 'Brokerage', val: '₹20 flat per order (Buy & Sell)'},
+      {name: 'STT', val: '0.10% Buy + 0.10% Sell'},
+      {name: 'NSE Txn Charge', val: '0.00297% on trade value'},
+      {name: 'SEBI Charge', val: '₹10/crore = 0.0001%'},
+      {name: 'GST', val: '18% on (Brok + NSE + SEBI)'},
+      {name: 'Stamp Duty', val: '0.015% on Buy only'},
+      {name: 'DP Charge', val: '₹20.00 + 18% GST = ₹23.60/sell'},
+    ]
+  },
+  kotak: {
+    name: 'Kotak Securities',
+    brokPct: 0.003,      // 0.30% both sides
+    brokFixed: 0,
+    sttBuy: 0.001,
+    sttSell: 0.001,
+    nseTxn: 0.0000297,
+    sebi: 0.000001,
+    gstBase: 0.18,
+    stampBuy: 0.00015,
+    dpCharge: 15.93,
+    charges: [
+      {name: 'Brokerage', val: '0.30% on Buy & Sell both'},
+      {name: 'STT', val: '0.10% Buy + 0.10% Sell'},
+      {name: 'NSE Txn Charge', val: '0.00297% on trade value'},
+      {name: 'SEBI Charge', val: '₹10/crore = 0.0001%'},
+      {name: 'GST', val: '18% on (Brok + NSE + SEBI)'},
+      {name: 'Stamp Duty', val: '0.015% on Buy only'},
+      {name: 'DP Charge', val: '₹13.50 + 18% GST = ₹15.93/sell'},
+    ]
+  }
+};
+
+const TRADE_ROWS = 12;
+
+function buildBrokerPage(key) {
+  const b = BROKERS[key];
+  const chargesHtml = b.charges.map(c => `
+    <div class="charge-item">
+      <div class="charge-name">${c.name}</div>
+      <div class="charge-val">${c.val}</div>
+    </div>`).join('');
+
+  let tradeHeader = `
+    <div class="trade-header">
+      <span>#</span>
+      <span>Scrip / Symbol</span>
+      <span>Qty</span>
+      <span>Buy Price (₹)</span>
+      <span>Sell Price (₹)</span>
+    </div>`;
+
+  let tradeRows = '';
+  for (let i = 1; i <= TRADE_ROWS; i++) {
+    tradeRows += `
+      <div class="trade-row">
+        <div class="row-num">${i}</div>
+        <input type="text" placeholder="NIFTY50…" id="${key}_scrip_${i}">
+        <input type="number" placeholder="0" id="${key}_qty_${i}" oninput="calcBroker('${key}')">
+        <input type="number" placeholder="0.00" id="${key}_buy_${i}" oninput="calcBroker('${key}')">
+        <input type="number" placeholder="0.00" class="sell-input" id="${key}_sell_${i}" oninput="calcBroker('${key}')">
+      </div>`;
+  }
+
+  const html = `
+    <div class="card">
+      <div class="card-title">Delivery Trade Charge Schedule</div>
+      <div class="charge-grid">${chargesHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Trade Entry &amp; Detailed P&amp;L Breakdown</div>
+      <div class="info-banner">🔵 Blue = Buy Price input &nbsp;|&nbsp; 🟡 Sell Price input &nbsp;|&nbsp; Enter Scrip, Qty, Buy Price, Sell Price below</div>
+      <div class="trade-inputs">
+        ${tradeHeader}
+        ${tradeRows}
+      </div>
+
+      <div class="results-table">
+        <div class="table-wrap">
+          <table id="${key}_results_table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Scrip</th>
+                <th style="text-align:right">Buy Value (₹)</th>
+                <th style="text-align:right">Total Buy Cost (₹)</th>
+                <th style="text-align:right">Net Proceeds (₹)</th>
+                <th style="text-align:right">Gross P&amp;L (₹)</th>
+                <th style="text-align:right">Total Charges (₹)</th>
+                <th style="text-align:right">Net P&amp;L (₹)</th>
+                <th style="text-align:right">Break-even (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="${key}_results_body"></tbody>
+            <tfoot id="${key}_results_foot">
+              <tr>
+                <td colspan="2">Portfolio Totals</td>
+                <td class="num" id="${key}_tot_buyval">—</td>
+                <td class="num" id="${key}_tot_buycost">—</td>
+                <td class="num" id="${key}_tot_proceeds">—</td>
+                <td class="num" id="${key}_tot_gross">—</td>
+                <td class="num" id="${key}_tot_charges">—</td>
+                <td class="num" id="${key}_tot_net">—</td>
+                <td class="num">—</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById(key + '-content').innerHTML = html;
+}
+
+function calcBrokerCharges(b, qty, buyPrice, sellPrice) {
+  if (!qty || !buyPrice) return null;
+  const sp = sellPrice || 0;
+  const buyVal  = qty * buyPrice;
+  const sellVal = qty * sp;
+
+  // Buy side
+  const buyBrok  = b.brokPct ? buyVal * b.brokPct : (qty > 0 ? b.brokFixed : 0);
+  const buyStt   = buyVal * b.sttBuy;
+  const buyNse   = buyVal * b.nseTxn;
+  const buySebi  = buyVal * b.sebi;
+  const buyGst   = (buyBrok + buyNse + buySebi) * b.gstBase;
+  const buyStamp = buyVal * b.stampBuy;
+  const buyOther = buyNse + buySebi + buyGst + buyStamp;
+  const totalBuyCost = buyVal + buyBrok + buyStt + buyOther;
+
+  // Sell side
+  const sellBrok  = b.brokPct ? sellVal * b.brokPct : (qty > 0 ? b.brokFixed : 0);
+  const sellStt   = sellVal * b.sttSell;
+  const sellNse   = sellVal * b.nseTxn;
+  const sellSebi  = sellVal * b.sebi;
+  const sellGst   = (sellBrok + sellNse + sellSebi) * b.gstBase;
+  const sellOther = sellNse + sellSebi + sellGst + b.dpCharge;
+  const netProceeds = sellVal - sellBrok - sellStt - sellOther;
+
+  const grossPnl = sellVal - buyVal;
+  const totalCharges = (totalBuyCost - buyVal) + (sellVal - netProceeds);
+  const netPnl = netProceeds - totalBuyCost;
+  const breakEven = totalBuyCost / qty;
+
+  return { buyVal, totalBuyCost, netProceeds, grossPnl, totalCharges, netPnl, breakEven };
+}
+
+function calcBroker(key) {
+  const b = BROKERS[key];
+  let tbody = '';
+  let totBuyVal=0, totBuyCost=0, totProceeds=0, totGross=0, totCharges=0, totNet=0;
+  let hasData = false;
+
+  for (let i = 1; i <= TRADE_ROWS; i++) {
+    const scrip     = document.getElementById(key+'_scrip_'+i)?.value || '';
+    const qty       = parseFloat(document.getElementById(key+'_qty_'+i)?.value) || 0;
+    const buyPrice  = parseFloat(document.getElementById(key+'_buy_'+i)?.value) || 0;
+    const sellPrice = parseFloat(document.getElementById(key+'_sell_'+i)?.value) || 0;
+    if (!qty || !buyPrice) {
+      tbody += `<tr><td style="color:var(--muted)">${i}</td><td colspan="8" style="color:var(--muted);font-size:12px;">—</td></tr>`;
+      continue;
+    }
+    hasData = true;
+    const r = calcBrokerCharges(b, qty, buyPrice, sellPrice);
+    totBuyVal  += r.buyVal;
+    totBuyCost += r.totalBuyCost;
+    totProceeds+= r.netProceeds;
+    totGross   += r.grossPnl;
+    totCharges += r.totalCharges;
+    totNet     += r.netPnl;
+
+    const pnlClass = r.netPnl >= 0 ? 'profit' : 'loss';
+    tbody += `<tr>
+      <td>${i}</td>
+      <td style="font-weight:500">${scrip || '—'}</td>
+      <td class="num">${fmtN(r.buyVal,2)}</td>
+      <td class="num">${fmtN(r.totalBuyCost,2)}</td>
+      <td class="num">${fmtN(r.netProceeds,2)}</td>
+      <td class="num ${pnlClass}">${fmtN(r.grossPnl,2)}</td>
+      <td class="num" style="color:var(--gold)">${fmtN(r.totalCharges,2)}</td>
+      <td class="num ${pnlClass}" style="font-weight:700">${fmtN(r.netPnl,2)}</td>
+      <td class="num" style="color:var(--muted)">${fmtN(r.breakEven,2)}</td>
+    </tr>`;
+  }
+
+  document.getElementById(key+'_results_body').innerHTML = tbody;
+  if (hasData) {
+    const totClass = totNet >= 0 ? 'profit' : 'loss';
+    document.getElementById(key+'_tot_buyval').textContent  = fmtN(totBuyVal,2);
+    document.getElementById(key+'_tot_buycost').textContent = fmtN(totBuyCost,2);
+    document.getElementById(key+'_tot_proceeds').textContent= fmtN(totProceeds,2);
+    document.getElementById(key+'_tot_gross').textContent   = fmtN(totGross,2);
+    document.getElementById(key+'_tot_charges').textContent = fmtN(totCharges,2);
+    const netEl = document.getElementById(key+'_tot_net');
+    netEl.textContent  = fmtN(totNet,2);
+    netEl.className    = 'num ' + totClass;
+  }
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+buildBrokerPage('zerodha');
+buildBrokerPage('groww');
+buildBrokerPage('kotak');
+calcInterest();
+</script>
+</body>
+</html>
