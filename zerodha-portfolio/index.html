@@ -681,19 +681,27 @@ function renderHoldings(){
 
 // ═══ CMP PRICE INPUT (no cursor-jump) ═══
 function handleCmpInput(sym,inp){
-  // Store raw value — don't format during typing to avoid cursor jump
+  // Sanitize input — only digits and one decimal point, no DOM re-render
+  const pos=inp.selectionStart;
   const raw=inp.value.replace(/[^\d.]/g,'');
-  // Allow only one decimal point
   const parts=raw.split('.');
-  if(parts.length>2)inp.value=parts[0]+'.'+parts.slice(1).join('');
+  if(parts.length>2){
+    inp.value=parts[0]+'.'+parts.slice(1).join('');
+    inp.selectionStart=inp.selectionEnd=pos;
+  }
   const v=parseFloat(inp.value)||0;
   curPrices[sym]=v;
-  save();updateSummary();
+  save();
+  // Only update the summary numbers, never re-render the whole grid during typing
+  updateSummary();
 }
 function finalizeCmp(sym,inp){
+  // Called on blur — safe to re-render now that user has finished typing
   const v=parseFloat(inp.value)||0;
   curPrices[sym]=v;
-  save();renderHoldings();updateSummary();
+  save();
+  renderHoldings(); // ← only here, not during typing
+  updateSummary();
 }
 function setCurPrice(sym,val){
   const v=parseFloat(val)||0;curPrices[sym]=v;save();renderHoldings();updateSummary();
