@@ -1,4 +1,4 @@
-const CACHE = 'zpf-v4';
+const CACHE = 'zpf-v5';
 const ASSETS = ['./index.html', './manifest.json',
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap'];
 
