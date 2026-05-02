@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#4fa3e0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Portfolio">
+<title>Zerodha Portfolio</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f14;--bg2:#131920;--bg3:#1c2430;--bg4:#242e3d;
+  --text:#dde3ec;--text2:#8896a8;--text3:#556070;
+  --green:#2ebd85;--red:#f0524f;--amber:#e8a020;--blue:#4fa3e0;--purple:#9d7fe8;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --font:'IBM Plex Sans',system-ui,sans-serif;
+  --r:10px;--rl:14px;
+  --nav-h:64px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.55;overscroll-behavior:none}
+body{display:flex;flex-direction:column}
+
+/* ── PULL-TO-REFRESH ── */
+#ptr-indicator{
+  position:fixed;top:0;left:0;right:0;height:0;z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  background:linear-gradient(to bottom,var(--blue)00,var(--bg2));
+  overflow:hidden;transition:height .2s ease;pointer-events:none;
+}
+#ptr-icon{
+  width:36px;height:36px;border-radius:50%;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:8px;opacity:0;transform:scale(.5);
+  transition:opacity .2s,transform .2s;font-size:18px;
+}
+#ptr-indicator.pulling #ptr-icon{opacity:1;transform:scale(1)}
+#ptr-indicator.refreshing #ptr-icon{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SCROLL CONTAINER ── */
+#scroll-root{
+  flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding-top:calc(var(--safe-top) + 0px);
+  padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px);
+}
+
+/* ── STICKY HEADER ── */
+.hdr{
+  position:sticky;top:0;z-index:100;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  padding:12px 16px;padding-top:calc(var(--safe-top) + 12px);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;flex-shrink:0}
+.logo-text{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3)}
+.hdr-actions{display:flex;gap:6px;align-items:center}
+.icon-btn{
+  min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text2);cursor:pointer;font-size:16px;font-family:var(--font);
+  flex-shrink:0;transition:background .15s;
+}
+.icon-btn:active{background:var(--bg4)}
+
+/* ── PAGE CONTENT ── */
+.page{display:none;padding:12px 14px;min-height:100%}
+.page.active{display:block}
+
+/* ── SUMMARY STRIP ── */
+.sum-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 14px}
+.sum-strip{display:flex;gap:8px;padding:2px 0 10px;min-width:max-content}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;min-width:130px;flex-shrink:0}
+.sc-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+.sc-v{font-size:18px;font-weight:700;letter-spacing:-.5px}
+.pos{color:var(--green)}.neg{color:var(--red)}.amb{color:var(--amber)}.bl{color:var(--blue)}
+
+/* ── VOICE ROW ── */
+.voice-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg3);border:1.5px dashed var(--border2);border-radius:var(--rl);
+  padding:14px;cursor:pointer;margin-bottom:12px;
+  transition:border-color .2s;
+}
+.voice-row:active{background:var(--bg4)}
+.voice-row.on{border-color:var(--red);border-style:solid;animation:glow 1.2s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.78}}
+.mic{width:44px;height:44px;border-radius:50%;background:var(--bg4);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.mic.on{background:var(--red);border-color:var(--red)}
+.vt{font-size:14px;color:var(--text2);flex:1}
+.vh{font-size:11px;color:var(--text3);margin-top:2px}
+.waves{display:none;align-items:center;gap:3px;height:22px}
+.waves.on{display:flex}
+.wb{width:3px;background:var(--blue);border-radius:2px;animation:wv .8s ease-in-out infinite}
+.wb:nth-child(1){height:5px;animation-delay:0s}.wb:nth-child(2){height:13px;animation-delay:.1s}.wb:nth-child(3){height:19px;animation-delay:.2s}.wb:nth-child(4){height:13px;animation-delay:.3s}.wb:nth-child(5){height:5px;animation-delay:.4s}
+@keyframes wv{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+
+/* ── PANELS ── */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:12px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-size:15px;font-weight:700}
+
+/* ── FORM ── */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+input,select{
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text);
+  padding:12px 12px;border-radius:var(--r);font-size:16px;font-family:var(--font);
+  width:100%;outline:none;transition:border-color .2s;-webkit-appearance:none;
+  min-height:48px;
+}
+input:focus,select:focus{border-color:var(--blue);background:var(--bg4)}
+select option{background:var(--bg3)}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+/* ── BUTTONS ── */
+.btn{
+  min-height:48px;padding:12px 20px;border-radius:var(--r);border:none;
+  cursor:pointer;font-size:15px;font-weight:600;font-family:var(--font);
+  white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  transition:filter .15s;
+}
+.btn:active{filter:brightness(.88)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-g{background:var(--green);color:#000}
+.btn-r{background:var(--red);color:#fff}
+.btn-o{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.arow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.arow .btn{flex:1}
+.btn-clear{flex:0 0 auto !important;min-width:48px;padding:12px}
+
+/* ── CHARGE PREVIEW ── */
+.prev{background:var(--bg3);border-radius:var(--r);padding:12px;margin-top:10px;border:1px solid var(--border);display:none}
+.prev.show{display:block}
+.pr{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px}
+.pr:last-child{border-bottom:none;padding-top:8px;font-weight:700;font-size:14px}
+.prl{color:var(--text3)}
+
+/* ── HOLDINGS GRID ── */
+.hg{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:600px){.hg{grid-template-columns:1fr 1fr}}
+.hcard{background:var(--bg3);border-radius:var(--rl);padding:14px;border-top:3px solid var(--green)}
+.hcard.loss{border-top-color:var(--red)}
+.hcard.neutral{border-top-color:var(--text3)}
+.hcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.hsym{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.hmeta{font-size:12px;color:var(--text2);margin-top:2px}
+.hstats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:10px}
+.hstat{padding:5px 0}
+.hstat-l{font-size:11px;color:var(--text3);margin-bottom:1px}
+.hstat-v{font-size:14px;font-weight:600}
+.holding-days{display:inline-flex;align-items:center;gap:6px;background:var(--bg4);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px}
+.days-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0}
+
+/* ── CMP CONTROL ── */
+.curr-block{background:var(--bg4);border-radius:var(--r);padding:10px 12px;margin-bottom:10px}
+.curr-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.curr-controls{display:flex;align-items:stretch;height:52px;gap:0}
+.curr-btn{
+  width:52px;background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text2);font-size:24px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  user-select:none;-webkit-user-select:none;font-family:var(--font);
+  transition:background .1s;
+}
+.curr-btn:first-child{border-radius:var(--r) 0 0 var(--r)}
+.curr-btn:last-child{border-radius:0 var(--r) var(--r) 0}
+.curr-btn:active{background:var(--blue);color:#fff}
+.curr-field{
+  flex:1;background:var(--bg);border:1px solid var(--blue);
+  border-left:none;border-right:none;color:var(--text);
+  font-size:18px;font-weight:700;font-family:var(--font);
+  text-align:center;padding:8px 4px;outline:none;
+  min-width:0;-webkit-appearance:none;appearance:none;
+}
+.pnl-pill{display:flex;justify-content:space-between;align-items:center;background:var(--bg4);border-radius:var(--r);padding:12px}
+.pp-lbl{font-size:11px;color:var(--text3);margin-bottom:2px}
+.pp-val{font-size:17px;font-weight:800}
+.tax-chip{font-size:11px;padding:5px 12px;border-radius:20px;margin-top:8px;display:inline-block;font-weight:600}
+.tc-stcg{background:rgba(232,160,32,.1);color:var(--amber);border:1px solid rgba(232,160,32,.2)}
+.tc-ltcg{background:rgba(79,163,224,.1);color:var(--blue);border:1px solid rgba(79,163,224,.2)}
+.tc-nil{background:rgba(85,96,112,.08);color:var(--text3);border:1px solid var(--border)}
+
+/* ── TRANSACTION LIST (MOBILE CARDS instead of table) ── */
+.tx-card{background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:8px;border:1px solid var(--border)}
+.tx-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tx-card-sym{font-size:16px;font-weight:800}
+.tx-card-meta{font-size:12px;color:var(--text3);margin-top:1px}
+.tx-card-row{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+.tx-card-lbl{color:var(--text3)}
+.tx-actions{display:flex;gap:8px;margin-top:10px}
+.tx-action-btn{
+  min-height:44px;flex:1;border-radius:var(--r);border:1px solid var(--border2);
+  background:var(--bg4);color:var(--text2);font-size:13px;font-weight:600;
+  font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+}
+.tx-action-btn:active{background:var(--bg2)}
+.tx-action-btn.del{color:var(--red);border-color:rgba(240,82,79,.2)}
+
+/* ── INLINE EDIT CARD ── */
+.edit-card{background:var(--bg3);border:1.5px solid var(--blue);border-radius:var(--rl);padding:14px;margin-bottom:8px}
+.edit-card .fg{margin-bottom:10px}
+.edit-actions{display:flex;gap:8px}
+.edit-actions .btn{flex:1}
+
+/* ── P&L VIEW ── */
+.pnl-card{background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:8px;border:1px solid var(--border);border-left:3px solid var(--green)}
+.pnl-card.loss{border-left-color:var(--red)}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.b-buy{background:rgba(46,189,133,.12);color:var(--green)}
+.b-sell{background:rgba(240,82,79,.12);color:var(--red)}
+.b-stcg{background:rgba(232,160,32,.12);color:var(--amber)}
+.b-ltcg{background:rgba(79,163,224,.12);color:var(--blue)}
+.b-nil{background:rgba(85,96,112,.12);color:var(--text3)}
+
+/* ── TAX TABLE ── */
+.tax-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:.5rem}
+.tax-table th{background:var(--bg3);padding:8px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.tax-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.tax-table tr:last-child td{border-bottom:none}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r)}
+
+/* ── BOTTOM NAV ── */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;z-index:150;
+  background:var(--bg2);border-top:1px solid var(--border2);
+  display:flex;align-items:stretch;
+  height:calc(var(--nav-h) + var(--safe-bot));
+  padding-bottom:var(--safe-bot);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;border:none;background:transparent;
+  color:var(--text3);font-size:10px;font-family:var(--font);font-weight:600;
+  letter-spacing:.3px;text-transform:uppercase;padding:8px 4px;
+  transition:color .15s;min-height:44px;
+}
+.nav-item svg{width:22px;height:22px;stroke-width:1.8;transition:transform .15s}
+.nav-item.active{color:var(--blue)}
+.nav-item.active svg{transform:translateY(-1px)}
+.nav-item:active svg{transform:scale(.9)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:calc(var(--nav-h) + var(--safe-bot) + 10px);
+  right:12px;left:12px;max-width:380px;margin:0 auto;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:12px 16px;font-size:13px;color:var(--text);z-index:9999;
+  transform:translateY(20px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto}
+.ul{color:var(--blue);cursor:pointer;text-decoration:underline}
+
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text3);font-size:15px;line-height:1.7}
+
+/* ── SECTION DIVIDER ── */
+.sdiv{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;padding-left:2px}
+
+/* ── HIGH CONTRAST MODE ── */
+body.hc{--bg:#000;--bg2:#0a0a0a;--bg3:#111;--bg4:#1a1a1a;--text:#fff}
+
+/* ── REFRESH HINT ── */
+.refresh-hint{
+  text-align:center;font-size:11px;color:var(--text3);padding:8px 0 2px;
+  letter-spacing:.3px;
+}
+</style>
+</head>
+<body>
+
+<!-- Pull-to-Refresh Indicator -->
+<div id="ptr-indicator"><div id="ptr-icon">↻</div></div>
+
+<!-- Top Header -->
+<div class="hdr">
+  <div class="logo">
+    <div class="logo-mark">Z</div>
+    <div>
+      <div class="logo-text">Portfolio</div>
+      <div class="logo-sub">FY 2026-27 · Tax Ready</div>
+    </div>
+  </div>
+  <div class="hdr-actions">
+    <button class="icon-btn" onclick="undoLast()" id="undoBtn" disabled title="Undo">↩</button>
+    <button class="icon-btn" onclick="toggleContrast()" id="ctBtn" title="Toggle contrast">☀</button>
+  </div>
+</div>
+
+<!-- Scrollable Root -->
+<div id="scroll-root">
+
+<!-- ═══ PAGE 1: HOLDINGS ═══ -->
+<div class="page active" id="page1">
+  <div class="refresh-hint">↓ Pull down to refresh</div>
+  <!-- Summary Strip -->
+  <div class="sum-scroll"><div class="sum-strip">
+    <div class="sc"><div class="sc-l">Invested</div><div class="sc-v bl" id="mInv">₹0</div></div>
+    <div class="sc"><div class="sc-l">Market Value</div><div class="sc-v bl" id="mMkt">—</div></div>
+    <div class="sc"><div class="sc-l">Unrealised P&L</div><div class="sc-v" id="mUnreal">—</div></div>
+    <div class="sc"><div class="sc-l">Realised P&L</div><div class="sc-v" id="mReal">₹0</div></div>
+    <div class="sc"><div class="sc-l">Total Charges</div><div class="sc-v amb" id="mChg">₹0</div></div>
+    <div class="sc"><div class="sc-l">Est. Tax (FY27)</div><div class="sc-v amb" id="mTax">₹0</div></div>
+  </div></div>
+
+  <div class="sdiv">Open Holdings</div>
+  <div class="hg" id="holdGrid"><div class="empty">No open holdings yet.<br>Add a BUY transaction to begin.</div></div>
+</div>
+
+<!-- ═══ PAGE 2: ADD TRANSACTION ═══ -->
+<div class="page" id="page2">
+  <!-- Voice Input -->
+  <div class="voice-row" id="vbar" onclick="toggleVoice()">
+    <div class="mic" id="micBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+    </div>
+    <div style="flex:1">
+      <div class="vt" id="vtext">Tap to speak — voice entry</div>
+      <div class="vh" id="vhint">e.g. "Buy 50 INFY at 1800 on 10 April"</div>
+    </div>
+    <div class="waves" id="waveEl"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr"><div class="sec-title">Add Transaction</div></div>
+    <div class="fg">
+      <div>
+        <div class="fl">Type</div>
+        <select id="txType" onchange="updatePrev()"><option>BUY</option><option>SELL</option></select>
+      </div>
+      <div>
+        <div class="fl">Exchange</div>
+        <select id="txExch" onchange="updatePrev()"><option>NSE</option><option>BSE</option></select>
+      </div>
+      <div style="grid-column:1/-1">
+        <div class="fl">Symbol</div>
+        <input id="txSym" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="RELIANCE, TCS, INFY…" oninput="this.value=this.value.toUpperCase();updatePrev()">
+      </div>
+      <div>
+        <div class="fl">Quantity</div>
+        <input id="txQty" type="text" inputmode="decimal" placeholder="100" oninput="updatePrev()">
+      </div>
+      <div>
+        <div class="fl">Price (₹)</div>
+        <input id="txPrice" type="text" inputmode="decimal" placeholder="2450.00" oninput="updatePrev()">
+      </div>
+      <div style="grid-column:1/-1">
+        <div class="fl">Date</div>
+        <input id="txDate" type="date" onchange="updatePrev()">
+      </div>
+    </div>
+    <div class="prev" id="prevBox">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Zerodha Equity Delivery — Charge Breakdown</div>
+      <div class="pr"><span class="prl">Trade value</span><span id="pV">—</span></div>
+      <div class="pr"><span class="prl">Brokerage (delivery)</span><span>₹0.00</span></div>
+      <div class="pr"><span class="prl">STT (0.1%)</span><span id="pS">—</span></div>
+      <div class="pr"><span class="prl">Exchange charges</span><span id="pE">—</span></div>
+      <div class="pr"><span class="prl">SEBI fees (₹10/cr)</span><span id="pB">—</span></div>
+      <div class="pr"><span class="prl">GST 18%</span><span id="pG">—</span></div>
+      <div class="pr"><span class="prl">Stamp duty</span><span id="pT">—</span></div>
+      <div class="pr"><span class="prl">Total charges</span><span id="pC" style="color:var(--amber)">—</span></div>
+      <div class="pr"><span class="prl">Net outflow / inflow</span><span id="pN">—</span></div>
+    </div>
+    <div class="arow">
+      <button class="btn btn-g" onclick="addTx('BUY')">+ Buy</button>
+      <button class="btn btn-r" onclick="addTx('SELL')">− Sell</button>
+      <button class="btn btn-o btn-clear" onclick="clearForm()" title="Clear">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 3: TRANSACTIONS ═══ -->
+<div class="page" id="page3">
+  <div class="sdiv" id="tx-count-label">All Transactions</div>
+  <div id="txList"><div class="empty">No transactions yet.</div></div>
+</div>
+
+<!-- ═══ PAGE 4: P&L ═══ -->
+<div class="page" id="page4">
+  <div id="pnlView"><div class="empty">Complete a BUY then SELL to see realised P&L.</div></div>
+</div>
+
+<!-- ═══ PAGE 5: TAX GUIDE ═══ -->
+<div class="page" id="page5">
+  <div class="panel">
+    <div class="sec-title" style="margin-bottom:12px">FY 2026-27 Capital Gains — Equity &amp; MF</div>
+    <div class="tbl-scroll">
+    <table class="tax-table">
+      <thead><tr><th>Type</th><th>Period</th><th>Rate</th><th>Exemption</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-stcg">STCG</span></td>
+          <td>&lt; 12 months</td>
+          <td style="color:var(--amber);font-weight:700">20%</td>
+          <td>Nil</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-ltcg">LTCG</span></td>
+          <td>≥ 12 months</td>
+          <td style="color:var(--blue);font-weight:700">12.5%</td>
+          <td>₹1.25L / FY</td>
+        </tr>
+        <tr>
+          <td colspan="4" style="color:var(--text3);font-size:12px;line-height:1.7">
+            Surcharge on LTCG capped at 15%. No indexation on equity. STT must be paid on both sides. STCG taxed at flat 20% rate. Loss set-off: STCL offsets STCG &amp; LTCG; LTCL only offsets LTCG. Carry forward up to 8 years.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-title" style="margin-bottom:12px">New Tax Regime Slabs FY 2026-27</div>
+    <div class="tbl-scroll">
+    <table class="tax-table">
+      <thead><tr><th>Income Slab</th><th>Rate</th></tr></thead>
+      <tbody>
+        <tr><td>Up to ₹4 lakh</td><td style="color:var(--green);font-weight:700">Nil</td></tr>
+        <tr><td>₹4L – ₹8L</td><td style="font-weight:700">5%</td></tr>
+        <tr><td>₹8L – ₹12L</td><td style="font-weight:700">10%</td></tr>
+        <tr><td>₹12L – ₹16L</td><td style="font-weight:700">15%</td></tr>
+        <tr><td>₹16L – ₹20L</td><td style="font-weight:700">20%</td></tr>
+        <tr><td>₹20L – ₹24L</td><td style="font-weight:700">25%</td></tr>
+        <tr><td>Above ₹24L</td><td style="color:var(--red);font-weight:700">30%</td></tr>
+        <tr><td colspan="2" style="color:var(--text3);font-size:12px;line-height:1.7">
+          Rebate u/s 87A: Tax nil if total income ≤ ₹12L (new regime). Standard deduction ₹75,000 for salaried. STCG @ 20% &amp; LTCG @ 12.5% are flat rates — not added to slab income.
+        </td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-title" style="margin-bottom:10px">Data Management</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-o" style="width:100%" onclick="exportData()">⬇ Export Portfolio JSON</button>
+      <button class="btn btn-o" style="width:100%" onclick="document.getElementById('importFile').click()">⬆ Import Portfolio JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+</div>
+
+</div><!-- /scroll-root -->
+
+<!-- Bottom Navigation -->
+<nav class="bnav">
+  <button class="nav-item active" id="nav1" onclick="showPage(1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    Holdings
+  </button>
+  <button class="nav-item" id="nav2" onclick="showPage(2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Add
+  </button>
+  <button class="nav-item" id="nav3" onclick="showPage(3)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Txns
+  </button>
+  <button class="nav-item" id="nav4" onclick="showPage(4)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    P&amp;L
+  </button>
+  <button class="nav-item" id="nav5" onclick="showPage(5)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Tax
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ CORE STATE ═══
+let txs=[],hist=[],curPrices={},editId=null,recog=null,isListening=false,hc=false;
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('txDate').value=today;
+
+// ═══ STORAGE ═══
+function load(){
+  try{
+    let d=localStorage.getItem('zTx3');
+    if(!d){const old=localStorage.getItem('zTx2')||localStorage.getItem('zTx');if(old){txs=JSON.parse(old);save();showToast('Previous data migrated!','ok')}
+    }else txs=JSON.parse(d);
+    curPrices=JSON.parse(localStorage.getItem('zCP3')||localStorage.getItem('zCP')||'{}');
+  }catch(e){txs=[];curPrices={}}
+}
+function save(){try{localStorage.setItem('zTx3',JSON.stringify(txs));localStorage.setItem('zCP3',JSON.stringify(curPrices))}catch(e){}}
+load();
+
+// ═══ HELPERS ═══
+function fmt(n){return'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function daysBetween(d1,d2){return Math.round((new Date(d2)-new Date(d1))/86400000)}
+function daysFromNow(d){return daysBetween(d,today)}
+function daysLabel(d){
+  if(d===0)return'today';
+  if(d===1)return'1 day';
+  if(d<30)return d+' days';
+  if(d<365){const mo=Math.floor(d/30),dy=d%30;return mo+'mo'+(dy?' '+dy+'d':'')}
+  const yr=Math.floor(d/365),mo=Math.floor((d%365)/30);return yr+'yr'+(mo?' '+mo+'mo':'');
+}
+
+// ═══ ZERODHA CHARGES ═══
+function zcharges(price,qty,type,exch){
+  const tv=price*qty,stt=tv*.001,ec=exch==='NSE'?tv*.0000297:tv*.0000375,sebi=tv*.000001,gst=(ec+sebi)*.18,stamp=type==='BUY'?tv*.00015:0,total=stt+ec+sebi+gst+stamp;
+  return{tv,stt,ec,sebi,gst,stamp,total,net:type==='BUY'?tv+total:tv-total};
+}
+
+// ═══ TAX CLASSIFICATION (FY 2026-27) ═══
+function hpInfo(buyDate){
+  const d=daysFromNow(buyDate);
+  if(d<365)return{label:'STCG 20%',cls:'b-stcg',days:d,rate:.20,type:'STCG'};
+  return{label:'LTCG 12.5%',cls:'b-ltcg',days:d,rate:.125,type:'LTCG'};
+}
+
+// ═══ HOLDINGS COMPUTATION ═══
+function computeHoldings(){
+  const m={};
+  const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  for(const tx of sorted){
+    if(!m[tx.sym])m[tx.sym]={lots:[],qty:0,invested:0,charges:0};
+    const h=m[tx.sym];
+    if(tx.type==='BUY'){
+      h.lots.push({qty:tx.qty,price:tx.price,date:tx.date,charges:tx.charges.total});
+      h.qty+=tx.qty;h.invested+=tx.charges.net;h.charges+=tx.charges.total;
+    }else{
+      let rem=tx.qty;
+      while(rem>0&&h.lots.length){
+        const lot=h.lots[0],used=Math.min(lot.qty,rem),frac=used/lot.qty;
+        h.qty-=used;h.invested-=used*lot.price;h.charges-=lot.charges*frac;
+        lot.qty-=used;rem-=used;if(lot.qty===0)h.lots.shift();
+      }
+    }
+  }
+  return m;
+}
+
+function computePnL(){
+  // Zerodha Tax P&L: Buy Value and Sell Value are raw price×qty (no charges),
+  // matching the Console Tax P&L report methodology.
+  const m={};const sells=[];
+  const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  for(const tx of sorted){
+    if(!m[tx.sym])m[tx.sym]={qty:0,cost:0,firstBuyDate:null};
+    const b=m[tx.sym];
+    if(tx.type==='BUY'){
+      b.qty+=tx.qty;
+      b.cost+=tx.charges.tv; // raw buy value: price × qty only
+      if(!b.firstBuyDate)b.firstBuyDate=tx.date;
+    }else{
+      const avg=b.qty>0?b.cost/b.qty:0;
+      const cb=avg*tx.qty;           // cost basis: raw avg price × sold qty
+      const proceeds=tx.charges.tv;  // sell proceeds: raw price × qty only
+      const pnl=proceeds-cb;
+      const d=daysBetween(b.firstBuyDate||tx.date,tx.date);
+      const taxType=d<365?'STCG':'LTCG',taxRate=d<365?.20:.125;
+      sells.push({sym:tx.sym,qty:tx.qty,date:tx.date,pnl,proceeds,cb,days:d,taxType,taxRate,id:tx.id});
+      b.qty-=tx.qty;b.cost-=cb;
+    }
+  }
+  return sells;
+}
+
+// ═══ FORM HELPERS ═══
+function parseDecimalInput(val){
+  // Accept both . and , as decimal separator, strip everything else except digits and first dot
+  const cleaned=val.replace(',','.').replace(/[^\d.]/g,'');
+  const parts=cleaned.split('.');
+  return parts.length>1?parts[0]+'.'+parts.slice(1).join(''):cleaned;
+}
+
+function updatePrev(){
+  const rawPrice=document.getElementById('txPrice').value;
+  const rawQty=document.getElementById('txQty').value;
+  const pr=parseFloat(parseDecimalInput(rawPrice));
+  const qt=parseInt(parseDecimalInput(rawQty));
+  const tp=document.getElementById('txType').value;
+  const ex=document.getElementById('txExch').value;
+  const box=document.getElementById('prevBox');
+  if(!pr||!qt||pr<=0||qt<=0){box.classList.remove('show');return}
+  box.classList.add('show');
+  const c=zcharges(pr,qt,tp,ex);
+  document.getElementById('pV').textContent=fmt(c.tv);
+  document.getElementById('pS').textContent=fmt(c.stt);
+  document.getElementById('pE').textContent=fmt(c.ec);
+  document.getElementById('pB').textContent=fmt(c.sebi);
+  document.getElementById('pG').textContent=fmt(c.gst);
+  document.getElementById('pT').textContent=fmt(c.stamp);
+  document.getElementById('pC').textContent=fmt(c.total);
+  const ne=document.getElementById('pN');
+  ne.textContent=(tp==='BUY'?'You pay: ':'You receive: ')+fmt(c.net);
+  ne.style.color=tp==='BUY'?'var(--red)':'var(--green)';
+}
+
+function addTx(type){
+  const sym=document.getElementById('txSym').value.trim().toUpperCase();
+  const qty=parseInt(parseDecimalInput(document.getElementById('txQty').value));
+  const price=parseFloat(parseDecimalInput(document.getElementById('txPrice').value));
+  const date=document.getElementById('txDate').value;
+  const exch=document.getElementById('txExch').value;
+  if(!sym||!qty||!price||!date){showToast('Fill all fields first','warn');return}
+  const c=zcharges(price,qty,type,exch);
+  hist.push(JSON.stringify(txs));
+  txs.unshift({id:Date.now(),type,sym,qty,price,date,exch,charges:c});
+  save();document.getElementById('undoBtn').disabled=false;
+  showToast(type+' '+qty+' '+sym+' @ '+fmt(price)+' added','ok');
+  clearForm();renderAll();showPage(3);
+}
+
+function deleteTx(id){
+  hist.push(JSON.stringify(txs));txs=txs.filter(t=>t.id!==id);save();
+  document.getElementById('undoBtn').disabled=hist.length===0;
+  renderAll();showToast('Deleted. <span class="ul" onclick="undoLast()">Undo</span>','warn');
+}
+
+function undoLast(){
+  if(!hist.length)return;
+  txs=JSON.parse(hist.pop());save();
+  document.getElementById('undoBtn').disabled=hist.length===0;
+  renderAll();showToast('↩ Undone');
+}
+
+function clearForm(){
+  ['txSym','txQty','txPrice'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('txDate').value=today;
+  document.getElementById('txType').value='BUY';
+  document.getElementById('txExch').value='NSE';
+  document.getElementById('prevBox').classList.remove('show');
+}
+
+// ═══ RENDER HOLDINGS ═══
+function renderHoldings(){
+  const h=computeHoldings();
+  const syms=Object.keys(h).filter(s=>h[s].qty>0);
+  const grid=document.getElementById('holdGrid');
+  if(!syms.length){grid.innerHTML='<div class="empty">No open holdings.<br>Add a BUY transaction to begin.</div>';return}
+  grid.innerHTML=syms.map(sym=>{
+    const hd=h[sym],avgPrice=hd.qty>0?hd.invested/hd.qty:0;
+    const cp=curPrices[sym]||0,mktVal=cp*hd.qty,unreal=cp>0?mktVal-hd.invested:null,pct=cp>0&&hd.invested>0?((mktVal-hd.invested)/hd.invested)*100:null;
+    const firstBuyTx=[...txs].filter(t=>t.sym===sym&&t.type==='BUY').sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+    const fbd=firstBuyTx?firstBuyTx.date:today;
+    const hp=hpInfo(fbd);
+    const cardCls=unreal===null?'neutral':unreal>=0?'':'loss';
+    const taxEstimate=unreal!==null&&unreal>0?(hp.type==='LTCG'?Math.max(0,(unreal-125000))*hp.rate:unreal*hp.rate):0;
+    return`<div class="hcard ${cardCls}">
+      <div class="hcard-top">
+        <div><div class="hsym">${sym}</div><div class="hmeta">${hd.qty} shares · Avg ₹${avgPrice.toFixed(2)}</div></div>
+        <span class="badge ${hp.cls}">${hp.label}</span>
+      </div>
+      <div class="holding-days"><div class="days-dot"></div>${daysLabel(hp.days)} held · since ${fbd}</div>
+      <div class="hstats">
+        <div class="hstat"><div class="hstat-l">Invested (net)</div><div class="hstat-v">${fmt(hd.invested)}</div></div>
+        <div class="hstat"><div class="hstat-l">Charges paid</div><div class="hstat-v amb">${fmt(hd.charges)}</div></div>
+        <div class="hstat"><div class="hstat-l">Market value</div><div class="hstat-v ${cp>0?'bl':''}">${cp>0?fmt(mktVal):'—'}</div></div>
+        <div class="hstat"><div class="hstat-l">Return</div><div class="hstat-v ${unreal===null?'':unreal>=0?'pos':'neg'}">${pct!==null?(pct>=0?'+':'')+pct.toFixed(2)+'%':'—'}</div></div>
+      </div>
+      <div class="curr-block">
+        <div class="curr-label">Current Market Price (LTP)</div>
+        <div class="curr-controls">
+          <button class="curr-btn"
+            ontouchstart="cmpBtnTouchStart(event,'${sym}',-1)"
+            ontouchend="cmpBtnTouchEnd(event,'${sym}',-1)"
+            ontouchcancel="stopAdjust()"
+            onmousedown="startAdjust('${sym}',-1)"
+            onmouseup="stopAdjust()"
+            onmouseleave="stopAdjust()">−</button>
+          <input class="curr-field" inputmode="decimal" id="cp_${sym}" value="${cp||''}" placeholder="0.00"
+            oninput="handleCmpInput('${sym}',this)"
+            onblur="finalizeCmp('${sym}',this)">
+          <button class="curr-btn"
+            ontouchstart="cmpBtnTouchStart(event,'${sym}',1)"
+            ontouchend="cmpBtnTouchEnd(event,'${sym}',1)"
+            ontouchcancel="stopAdjust()"
+            onmousedown="startAdjust('${sym}',1)"
+            onmouseup="stopAdjust()"
+            onmouseleave="stopAdjust()">+</button>
+        </div>
+      </div>
+      ${unreal!==null?`<div class="pnl-pill">
+        <div><div class="pp-lbl">Unrealised P&L</div><div class="pp-val ${unreal>=0?'pos':'neg'}">${fmt(unreal)}</div></div>
+        <div style="text-align:right"><div class="pp-lbl">Est. tax if sold now</div><div class="pp-val amb">${taxEstimate>0?fmt(taxEstimate):'Nil'}</div></div>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+        <span class="tax-chip ${hp.type==='STCG'?'tc-stcg':'tc-ltcg'}">${hp.type==='STCG'?'STCG 20% — held &lt;1yr':'LTCG 12.5% — held ≥1yr'}</span>
+        ${hp.type==='LTCG'?'<span class="tax-chip tc-nil">₹1.25L exemption/FY</span>':''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ═══ CMP PRICE INPUT (no cursor-jump) ═══
+function handleCmpInput(sym,inp){
+  // Sanitize input — only digits and one decimal point, no DOM re-render
+  const pos=inp.selectionStart;
+  const raw=inp.value.replace(/[^\d.]/g,'');
+  const parts=raw.split('.');
+  if(parts.length>2){
+    inp.value=parts[0]+'.'+parts.slice(1).join('');
+    inp.selectionStart=inp.selectionEnd=pos;
+  }
+  const v=parseFloat(inp.value)||0;
+  curPrices[sym]=v;
+  save();
+  // Only update the summary numbers, never re-render the whole grid during typing
+  updateSummary();
+}
+function finalizeCmp(sym,inp){
+  // Called on blur — safe to re-render now that user has finished typing
+  const v=parseFloat(inp.value)||0;
+  curPrices[sym]=v;
+  save();
+  renderHoldings(); // ← only here, not during typing
+  updateSummary();
+}
+function setCurPrice(sym,val){
+  const v=parseFloat(val)||0;curPrices[sym]=v;save();renderHoldings();updateSummary();
+}
+
+let adjustTimer=null,adjustInterval=null;
+
+// ── SCROLL GUARD: block accidental ±  taps during/after scroll ──
+let _scrollGuardActive=false,_scrollGuardTimer=null;
+(function(){
+  const root=document.getElementById('scroll-root');
+  root.addEventListener('scroll',()=>{
+    _scrollGuardActive=true;
+    clearTimeout(_scrollGuardTimer);
+    _scrollGuardTimer=setTimeout(()=>{_scrollGuardActive=false},350);
+  },{passive:true});
+})();
+
+// ── TOUCH HELPERS: only fire if finger barely moved (not a scroll) ──
+let _cmpTouchStartY=0,_cmpTouchStartX=0;
+function cmpBtnTouchStart(e,sym,dir){
+  _cmpTouchStartY=e.touches[0].clientY;
+  _cmpTouchStartX=e.touches[0].clientX;
+}
+function cmpBtnTouchEnd(e,sym,dir){
+  if(_scrollGuardActive)return;
+  const dy=Math.abs(e.changedTouches[0].clientY-_cmpTouchStartY);
+  const dx=Math.abs(e.changedTouches[0].clientX-_cmpTouchStartX);
+  if(dy>10||dx>10)return; // finger moved — it was a scroll, not a tap
+  e.preventDefault(); // prevent ghost mouse events
+  startAdjust(sym,dir);
+  // For touch, stop after a brief hold (no long-press repeat on touch)
+  setTimeout(stopAdjust,600);
+}
+
+function startAdjust(sym,dir){
+  if(_scrollGuardActive)return;
+  adjustPrice(sym,dir);
+  adjustTimer=setTimeout(()=>{adjustInterval=setInterval(()=>adjustPrice(sym,dir),80)},400);
+}
+function stopAdjust(){clearTimeout(adjustTimer);clearInterval(adjustInterval)}
+function adjustPrice(sym,dir){
+  const cur=curPrices[sym]||0;
+  const step=cur>=1000?5:cur>=100?1:0.5;
+  const nv=Math.max(0,parseFloat((cur+dir*step).toFixed(2)));
+  curPrices[sym]=nv;
+  const inp=document.getElementById('cp_'+sym);
+  if(inp)inp.value=nv||'';
+  save();renderHoldings();updateSummary();
+}
+
+// ═══ RENDER TRANSACTIONS (mobile cards) ═══
+function renderTxList(){
+  const list=document.getElementById('txList');
+  const label=document.getElementById('tx-count-label');
+  if(!txs.length){list.innerHTML='<div class="empty">No transactions yet.<br>Go to Add tab to record your first trade.</div>';label.textContent='All Transactions';return}
+  label.textContent=`All Transactions (${txs.length})`;
+  list.innerHTML=txs.map(tx=>{
+    const d=daysFromNow(tx.date);
+    if(tx.id===editId) return renderEditCard(tx);
+    return`<div class="tx-card">
+      <div class="tx-card-top">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="tx-card-sym">${tx.sym}</span>
+            <span class="badge ${tx.type==='BUY'?'b-buy':'b-sell'}">${tx.type}</span>
+          </div>
+          <div class="tx-card-meta">${tx.date} · ${daysLabel(d)} ago · ${tx.exch}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:15px;font-weight:700">${fmt(tx.charges.tv)}</div>
+          <div style="font-size:12px;color:var(--amber)">${fmt(tx.charges.total)} fees</div>
+        </div>
+      </div>
+      <div class="tx-card-row"><span class="tx-card-lbl">Qty × Price</span><span>${tx.qty} × ${fmt(tx.price)}</span></div>
+      <div class="tx-card-row"><span class="tx-card-lbl">Net ${tx.type==='BUY'?'outflow':'inflow'}</span><span style="color:${tx.type==='BUY'?'var(--red)':'var(--green)'};font-weight:600">${fmt(tx.charges.net)}</span></div>
+      <div class="tx-actions">
+        <button class="tx-action-btn" onclick="startEditRow(${tx.id})">✎ Edit</button>
+        <button class="tx-action-btn del" onclick="deleteTx(${tx.id})">⊗ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEditCard(tx){
+  return`<div class="edit-card">
+    <div style="font-size:12px;color:var(--blue);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Editing: ${tx.sym}</div>
+    <div class="fg" style="margin-bottom:10px">
+      <div><div class="fl">Type</div><select class="ei" id="es_type" style="min-height:48px"><option${tx.type==='BUY'?' selected':''}>BUY</option><option${tx.type==='SELL'?' selected':''}>SELL</option></select></div>
+      <div><div class="fl">Exchange</div><select class="ei" id="es_exch" style="min-height:48px"><option${tx.exch==='NSE'?' selected':''}>NSE</option><option${tx.exch==='BSE'?' selected':''}>BSE</option></select></div>
+      <div><div class="fl">Symbol</div><input class="ei" id="es_sym" value="${tx.sym}" autocapitalize="characters" style="min-height:48px;text-transform:uppercase"></div>
+      <div><div class="fl">Quantity</div><input class="ei" type="text" inputmode="decimal" id="es_qty" value="${tx.qty}" style="min-height:48px"></div>
+      <div style="grid-column:1/-1"><div class="fl">Price (₹)</div><input class="ei" type="text" inputmode="decimal" id="es_price" value="${tx.price}" style="min-height:48px"></div>
+      <div style="grid-column:1/-1"><div class="fl">Date</div><input class="ei" type="date" id="es_date" value="${tx.date}" style="min-height:48px"></div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn btn-g" onclick="saveEditRow(${tx.id})">✓ Save</button>
+      <button class="btn btn-o" onclick="cancelEdit()">✕ Cancel</button>
+    </div>
+  </div>`;
+}
+
+function startEditRow(id){if(editId&&editId!==id)cancelEdit();editId=id;renderTxList()}
+function saveEditRow(id){
+  const tx=txs.find(t=>t.id===id);if(!tx)return;
+  const sym=(document.getElementById('es_sym').value||'').toUpperCase().trim();
+  const qty=parseInt(parseDecimalInput(document.getElementById('es_qty').value));
+  const price=parseFloat(parseDecimalInput(document.getElementById('es_price').value));
+  const date=document.getElementById('es_date').value;
+  const type=document.getElementById('es_type').value;
+  const exch=document.getElementById('es_exch').value;
+  if(!sym||!qty||!price||!date){showToast('Fill all fields','warn');return}
+  hist.push(JSON.stringify(txs));
+  const c=zcharges(price,qty,type,exch);
+  Object.assign(tx,{sym,qty,price,date,type,exch,charges:c});
+  save();editId=null;document.getElementById('undoBtn').disabled=false;
+  showToast('Updated','ok');renderAll();
+}
+function cancelEdit(){editId=null;renderTxList()}
+
+// ═══ RENDER P&L ═══
+function renderPnL(){
+  const sells=computePnL();const div=document.getElementById('pnlView');
+  if(!sells.length){div.innerHTML='<div class="empty">Add a SELL transaction<br>to see realised P&L.</div>';return}
+  const total=sells.reduce((s,x)=>s+x.pnl,0);
+  const stcgTotal=sells.filter(s=>s.taxType==='STCG').reduce((s,x)=>s+Math.max(0,x.pnl),0);
+  const ltcgTotal=sells.filter(s=>s.taxType==='LTCG').reduce((s,x)=>s+Math.max(0,x.pnl),0);
+  const stcgTax=stcgTotal*.20;
+  const ltcgTax=Math.max(0,(ltcgTotal-125000))*.125;
+  div.innerHTML=`
+  <div class="sum-scroll"><div class="sum-strip" style="margin-bottom:2px">
+    <div class="sc"><div class="sc-l">Realised P&L</div><div class="sc-v ${total>=0?'pos':'neg'}">${fmt(total)}</div></div>
+    <div class="sc"><div class="sc-l">STCG Gains (20%)</div><div class="sc-v amb">${fmt(stcgTotal)}</div></div>
+    <div class="sc"><div class="sc-l">LTCG Gains (12.5%)</div><div class="sc-v bl">${fmt(ltcgTotal)}</div></div>
+    <div class="sc"><div class="sc-l">Total Est. Tax</div><div class="sc-v amb">${fmt(stcgTax+ltcgTax)}</div></div>
+  </div></div>
+  <div class="sdiv">Trade-wise P&L</div>
+  ${sells.map(s=>{
+    const estTax=s.pnl>0?(s.taxType==='STCG'?s.pnl*.20:Math.max(0,s.pnl-125000)*.125):0;
+    return`<div class="pnl-card${s.pnl<0?' loss':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:16px;font-weight:800">${s.sym}</div>
+          <div style="font-size:12px;color:var(--text3)">${s.date} · ${daysLabel(s.days)} held · ${s.qty} shares</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:800;color:${s.pnl>=0?'var(--green)':'var(--red)'}">${fmt(s.pnl)}</div>
+          <span class="badge ${s.taxType==='STCG'?'b-stcg':'b-ltcg'}">${s.taxType} ${s.taxType==='STCG'?'20%':'12.5%'}</span>
+        </div>
+      </div>
+      <div class="tx-card-row"><span class="tx-card-lbl">Buy Value</span><span>${fmt(s.cb)}</span></div>
+      <div class="tx-card-row"><span class="tx-card-lbl">Sell Value</span><span>${fmt(s.proceeds)}</span></div>
+      <div class="tx-card-row"><span class="tx-card-lbl">P&L (excl. charges)</span><span style="color:${s.pnl>=0?'var(--green)':'var(--red)'}">${fmt(s.pnl)}</span></div>
+      <div class="tx-card-row"><span class="tx-card-lbl">Est. tax</span><span style="color:var(--amber)">${estTax>0?fmt(estTax):'Nil'}</span></div>
+    </div>`;
+  }).join('')}`;
+}
+
+// ═══ UPDATE SUMMARY ═══
+function updateSummary(){
+  const h=computeHoldings();let inv=0,mkt=0,unreal=0,hasCP=false,estTaxUnreal=0;
+  for(const sym of Object.keys(h)){
+    if(h[sym].qty<=0)continue;
+    inv+=h[sym].invested;
+    const cp=curPrices[sym]||0;
+    if(cp>0){
+      const mv=cp*h[sym].qty;mkt+=mv;unreal+=mv-h[sym].invested;hasCP=true;
+      const fbt=[...txs].filter(t=>t.sym===sym&&t.type==='BUY').sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+      const hp=fbt?hpInfo(fbt.date):{type:'STCG',rate:.20};
+      const g=mv-h[sym].invested;
+      if(g>0)estTaxUnreal+=hp.type==='LTCG'?Math.max(0,(g-125000))*hp.rate:g*hp.rate;
+    }
+  }
+  const sells=computePnL();const real=sells.reduce((s,x)=>s+x.pnl,0);
+  const stcgT=sells.filter(s=>s.taxType==='STCG').reduce((s,x)=>s+Math.max(0,x.pnl),0)*.20;
+  const ltcgT=Math.max(0,sells.filter(s=>s.taxType==='LTCG').reduce((s,x)=>s+Math.max(0,x.pnl),0)-125000)*.125;
+  const allChg=txs.reduce((s,t)=>s+t.charges.total,0);
+  document.getElementById('mInv').textContent=fmt(inv);
+  const mv=document.getElementById('mMkt');mv.textContent=hasCP?fmt(mkt):'—';
+  const ur=document.getElementById('mUnreal');ur.textContent=hasCP?fmt(unreal):'—';ur.className='sc-v '+(hasCP?(unreal>=0?'pos':'neg'):'bl');
+  const rr=document.getElementById('mReal');rr.textContent=fmt(real);rr.className='sc-v '+(real>=0?'pos':'neg');
+  document.getElementById('mChg').textContent=fmt(allChg);
+  document.getElementById('mTax').textContent=fmt(stcgT+ltcgT+(hasCP?estTaxUnreal:0));
+}
+
+function renderAll(){renderHoldings();renderTxList();renderPnL();updateSummary()}
+
+// ═══ PAGE NAVIGATION ═══
+let currentPage=1;
+function showPage(n){
+  currentPage=n;
+  for(let i=1;i<=5;i++){
+    document.getElementById('page'+i).classList.toggle('active',i===n);
+    document.getElementById('nav'+i).classList.toggle('active',i===n);
+  }
+  // Scroll to top when switching pages
+  document.getElementById('scroll-root').scrollTo({top:0,behavior:'smooth'});
+  if(n===3&&editId)cancelEdit();
+}
+
+// ═══ EXPORT / IMPORT ═══
+function exportData(){
+  const data={txs,curPrices,exportedAt:new Date().toISOString(),version:'v4'};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='portfolio_'+today+'.json';a.click();
+  showToast('Exported as JSON','ok');
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.txs&&Array.isArray(d.txs)){
+        hist.push(JSON.stringify(txs));txs=d.txs;
+        if(d.curPrices)curPrices=d.curPrices;
+        save();document.getElementById('undoBtn').disabled=false;
+        renderAll();showToast('Imported '+d.txs.length+' transactions','ok');
+      }else showToast('Invalid file format','warn');
+    }catch(err){showToast('Could not parse JSON','warn')}
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ═══ TOAST ═══
+let toastT;
+function showToast(msg,type){
+  clearTimeout(toastT);const t=document.getElementById('toast');
+  t.innerHTML=msg;
+  t.style.borderColor=type==='warn'?'var(--amber)':type==='ok'?'var(--green)':'var(--border2)';
+  t.classList.add('show');toastT=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ═══ CONTRAST ═══
+function toggleContrast(){
+  hc=!hc;document.body.classList.toggle('hc',hc);
+  document.getElementById('ctBtn').textContent=hc?'☽':'☀';
+}
+
+// ═══ VOICE INPUT ═══
+const MO={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12,jan:1,feb:2,mar:3,apr:4,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function parseVoice(text){
+  const t=text.toLowerCase(),type=t.includes('sell')?'SELL':'BUY';
+  const m1=t.match(/(?:buy|sell|bought|sold)\s+(\d+)\s+([a-z0-9]+)/i);
+  const m2=t.match(/at\s+([\d,]+(?:\.\d+)?)/i);
+  let sym='',qty=0,price=0,dateStr=today;
+  if(m1){qty=parseInt(m1[1]);sym=m1[2].toUpperCase()}
+  if(m2)price=parseFloat(m2[1].replace(',',''));
+  for(const[mn,mv]of Object.entries(MO)){
+    const re=new RegExp('(\\d{1,2})\\s+'+mn+'\\s*(\\d{4})?','i'),dm=t.match(re);
+    if(dm){const yr=dm[2]||new Date().getFullYear();dateStr=`${yr}-${String(mv).padStart(2,'0')}-${String(dm[1]).padStart(2,'0')}`;break}
+  }
+  if(sym&&qty&&price){
+    document.getElementById('txType').value=type;document.getElementById('txSym').value=sym;
+    document.getElementById('txQty').value=qty;document.getElementById('txPrice').value=price;
+    document.getElementById('txDate').value=dateStr;updatePrev();
+    showToast('Parsed: '+type+' '+qty+' '+sym+' @ ₹'+price,'ok');
+    showPage(2);
+  }else showToast('Could not parse. Try: "Buy 50 INFY at 1800 on 1 June"','warn');
+}
+function toggleVoice(){
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){showToast('Use Chrome for voice input','warn');return}
+  if(isListening){recog&&recog.stop();return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recog=new SR();recog.lang='en-IN';recog.continuous=false;recog.interimResults=false;
+  recog.onstart=()=>{isListening=true;document.getElementById('micBtn').classList.add('on');document.getElementById('vbar').classList.add('on');document.getElementById('waveEl').classList.add('on');document.getElementById('vtext').textContent='Listening…'};
+  recog.onresult=e=>{const tr=e.results[0][0].transcript;document.getElementById('vtext').textContent='Heard: "'+tr+'"';parseVoice(tr)};
+  recog.onerror=e=>{showToast('Voice error: '+e.error,'warn');resetVoice()};
+  recog.onend=()=>resetVoice();
+  recog.start();
+}
+function resetVoice(){isListening=false;['micBtn','vbar','waveEl'].forEach(id=>document.getElementById(id).classList.remove('on'));document.getElementById('vtext').textContent='Tap to speak — voice entry'}
+
+// ═══ PULL-TO-REFRESH ═══
+(function(){
+  const root=document.getElementById('scroll-root');
+  const ptr=document.getElementById('ptr-indicator');
+  const icon=document.getElementById('ptr-icon');
+  let startY=0,pulling=false,triggered=false;
+  const THRESHOLD=70;
+
+  root.addEventListener('touchstart',e=>{
+    if(root.scrollTop===0)startY=e.touches[0].clientY;
+    else startY=0;
+  },{passive:true});
+
+  root.addEventListener('touchmove',e=>{
+    if(!startY)return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy>0&&root.scrollTop===0){
+      pulling=true;
+      const progress=Math.min(dy,THRESHOLD*1.5);
+      ptr.style.height=progress*0.6+'px';
+      const ratio=Math.min(dy/THRESHOLD,1);
+      icon.style.transform=`scale(${0.5+ratio*0.5}) rotate(${ratio*180}deg)`;
+      icon.style.opacity=ratio;
+      ptr.classList.toggle('pulling',dy>20);
+      if(dy>=THRESHOLD&&!triggered)triggered=true;
+    }
+  },{passive:true});
+
+  root.addEventListener('touchend',()=>{
+    if(triggered){
+      ptr.classList.add('refreshing');
+      ptr.style.height='52px';
+      setTimeout(()=>{
+        renderAll();showToast('Refreshed','ok');
+        ptr.style.height='0';ptr.classList.remove('pulling','refreshing');
+        icon.style.opacity='0';triggered=false;pulling=false;startY=0;
+      },800);
+    }else{
+      ptr.style.height='0';ptr.classList.remove('pulling');
+      icon.style.opacity='0';pulling=false;startY=0;triggered=false;
+    }
+  });
+})();
+
+// ═══ SERVICE WORKER ═══
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ═══ INIT ═══
+renderAll();
+</script>
+</body>
+</html>
