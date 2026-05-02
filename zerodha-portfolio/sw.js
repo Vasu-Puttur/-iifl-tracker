@@ -1,6 +1,5 @@
 const CACHE = 'zpf-v8';
-const ASSETS = ['./index.html', './manifest.json',
-  'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap'];
+const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
