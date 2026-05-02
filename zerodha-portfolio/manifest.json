@@ -2,13 +2,13 @@
   "name": "Zerodha Portfolio Tracker",
   "short_name": "Portfolio",
   "description": "Personal equity portfolio tracker with FY 2026-27 Indian tax calculations",
-  "start_url": "./index.html",
+  "start_url": "/-iifl-tracker/zerodha-portfolio/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0b0f14",
   "theme_color": "#4fa3e0",
   "lang": "en-IN",
-  "scope": "./",
+  "scope": "/-iifl-tracker/zerodha-portfolio/",
   "icons": [
     {
       "src": "icon-192.png",
