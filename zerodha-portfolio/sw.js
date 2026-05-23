@@ -1,4 +1,4 @@
-const MANUAL = 'v9';  // ← bump this when you deploy a change
+const MANUAL = 'v10';  // ← bump this when you deploy a change
 const AUTO   = new Date().toISOString().slice(0, 10); // "2026-05-03" — rotates daily automatically
 const CACHE  = `zpf-${MANUAL}-${AUTO}`;
 
