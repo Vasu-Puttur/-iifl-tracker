@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Portfolio">
+<title>Zerodha Portfolio</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080c10;--bg2:#101620;--bg3:#192030;--bg4:#1e2840;--bg5:#252f42;
+  --text:#cdd5e0;--text2:#7a8a9e;--text3:#44556a;
+  --green:#25b87a;--red:#e84040;--amber:#d4860f;--blue:#3d91d4;--purple:#836fd4;
+  --green-dim:rgba(37,184,122,.12);--red-dim:rgba(232,64,64,.12);
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.11);--border3:rgba(255,255,255,.18);
+  --font:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace;
+  --r:8px;--rl:12px;
+  --nav-h:58px;
+  --footer-h:72px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --hit:44px; /* minimum touch target */
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;overscroll-behavior:none}
+body{display:flex;flex-direction:column}
+
+/* ══ PULL-TO-REFRESH ══ */
+#ptr-indicator{
+  position:fixed;top:0;left:0;right:0;height:0;z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;overflow:hidden;
+  transition:height .2s ease;pointer-events:none;
+}
+#ptr-icon{
+  width:32px;height:32px;border-radius:50%;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:8px;opacity:0;transform:scale(.5);
+  transition:opacity .2s,transform .2s;font-size:15px;
+}
+#ptr-indicator.pulling #ptr-icon{opacity:1;transform:scale(1)}
+#ptr-indicator.refreshing #ptr-icon{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ SCROLL CONTAINER ══ */
+#scroll-root{
+  flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding-top:calc(var(--safe-top) + 52px);
+  padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 8px);
+}
+/* Extra padding when sticky footer is visible (add/edit pages) */
+#scroll-root.has-footer{
+  padding-bottom:calc(var(--nav-h) + var(--footer-h) + var(--safe-bot) + 8px);
+}
+
+/* ══ STICKY HEADER ══ */
+.hdr{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(8,12,16,.96);border-bottom:1px solid var(--border2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:0 14px;padding-top:var(--safe-top);
+  height:calc(var(--safe-top) + 52px);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-mark{
+  width:32px;height:32px;background:var(--blue);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;color:#fff;flex-shrink:0;
+  font-family:var(--mono);
+}
+.logo-text{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:.2px}
+.hdr-actions{display:flex;gap:4px;align-items:center}
+
+/* ══ ICON BUTTONS: visual is slim, hit area is 44px ══ */
+.icon-btn{
+  /* hit area */
+  min-width:var(--hit);min-height:var(--hit);
+  display:flex;align-items:center;justify-content:center;
+  /* visual */
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text2);cursor:pointer;font-size:15px;font-family:var(--font);
+  flex-shrink:0;transition:background .15s,color .15s;
+}
+.icon-btn:active{background:var(--bg4);color:var(--text)}
+.icon-btn.spinning{color:var(--blue);border-color:var(--blue);animation:spin .7s linear infinite;pointer-events:none}
+/* ══ SYNC STATUS DOT ══ */
+#syncDot{width:8px;height:8px;border-radius:50%;background:var(--text3);transition:background .4s;flex-shrink:0}
+#syncDot.synced{background:var(--green)}
+#syncDot.syncing{background:var(--amber);animation:pulse 1s ease-in-out infinite}
+#syncDot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ══ SIGN-IN SCREEN ══ */
+#signInScreen{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+.si-logo{font-size:40px;margin-bottom:16px}
+.si-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:6px;text-align:center}
+.si-sub{font-size:13px;color:var(--text2);text-align:center;margin-bottom:36px;line-height:1.6}
+.si-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 20px;background:#fff;color:#1f1f1f;border:none;border-radius:var(--rl);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.4);transition:opacity .15s}
+.si-btn:active{opacity:.85}
+.si-btn svg{width:20px;height:20px;flex-shrink:0}
+.si-note{font-size:11px;color:var(--text3);text-align:center;margin-top:20px;max-width:280px;line-height:1.6}
+.si-err{font-size:12px;color:var(--red);text-align:center;margin-top:12px;min-height:18px}
+#userAvatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;display:none}
+#userInitial{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+
+/* ══ EXPORT/IMPORT MODAL ══ */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-backdrop.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl) var(--rl) 0 0;width:100%;max-width:480px;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .25s ease}
+.modal-backdrop.open .modal{transform:translateY(0)}
+.modal-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:18px}
+.modal-btn{width:100%;padding:13px;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;font-family:var(--font);font-weight:500;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:10px;transition:background .15s}
+.modal-btn:active{background:var(--bg4)}
+.modal-btn .mb-icon{font-size:18px;width:24px;text-align:center}
+.modal-btn .mb-text{flex:1;text-align:left}
+.modal-btn .mb-sub{font-size:11px;color:var(--text2);display:block;margin-top:1px}
+.modal-btn.danger{border-color:rgba(232,64,64,.3);color:var(--red)}
+.modal-close{width:100%;padding:11px;border-radius:var(--r);border:none;background:transparent;color:var(--text2);font-size:13px;font-family:var(--font);cursor:pointer;margin-top:2px}
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:28px 16px;text-align:center;color:var(--text2);font-size:13px;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:10px}
+.drop-zone.dragover{border-color:var(--blue);background:rgba(61,145,212,.08);color:var(--text)}
+.drop-zone .dz-icon{font-size:28px;margin-bottom:8px}
+.drop-zone .dz-hint{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* ══ PAGE CONTENT ══ */
+.page{display:none;padding:10px 12px;animation:fadeUp .18s ease both}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ══ SUMMARY STRIP ══ */
+.sum-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -12px;padding:0 12px}
+.sum-strip{display:flex;gap:6px;padding:2px 0 10px;min-width:max-content}
+.sc{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:9px 13px;min-width:118px;flex-shrink:0;
+}
+.sc-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.sc-v{font-size:16px;font-weight:700;letter-spacing:-.4px;font-family:var(--mono)}
+.pos{color:var(--green)}.neg{color:var(--red)}.amb{color:var(--amber)}.bl{color:var(--blue)}
+
+/* ══ SECTION DIVIDER ══ */
+.sdiv{
+  font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;
+  margin:12px 0 7px;padding-left:2px;display:flex;align-items:center;gap:8px;
+}
+.sdiv::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ══ VOICE ROW ══ */
+.voice-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px dashed var(--border3);border-radius:var(--rl);
+  padding:11px 12px;cursor:pointer;margin-bottom:10px;
+  transition:border-color .2s,background .15s;
+}
+.voice-row:active{background:var(--bg4)}
+.voice-row.on{border-color:var(--red);border-style:solid;animation:glow 1.2s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.78}}
+.mic{
+  width:var(--hit);height:var(--hit);border-radius:50%;
+  background:var(--bg4);border:1.5px solid var(--blue);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;
+}
+.mic.on{background:var(--red);border-color:var(--red)}
+.vt{font-size:13px;color:var(--text2);flex:1}
+.vh{font-size:10px;color:var(--text3);margin-top:1px}
+.waves{display:none;align-items:center;gap:3px;height:20px}
+.waves.on{display:flex}
+.wb{width:3px;background:var(--blue);border-radius:2px;animation:wv .8s ease-in-out infinite}
+.wb:nth-child(1){height:4px;animation-delay:0s}.wb:nth-child(2){height:12px;animation-delay:.1s}.wb:nth-child(3){height:18px;animation-delay:.2s}.wb:nth-child(4){height:12px;animation-delay:.3s}.wb:nth-child(5){height:4px;animation-delay:.4s}
+@keyframes wv{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+
+/* ══ FORM PANEL ══ */
+.panel{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--rl);padding:12px;margin-bottom:10px;
+}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-size:14px;font-weight:700;letter-spacing:-.2px}
+
+/* ══ FORM GRID ══ */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fg-full{grid-column:1/-1}
+.fl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+
+/* 5. NATIVE INPUT TYPES — correct keyboards, 48px touch height */
+input,select{
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text);
+  padding:0 11px;border-radius:var(--r);font-size:16px;font-family:var(--font);
+  width:100%;outline:none;transition:border-color .2s;-webkit-appearance:none;
+  height:48px;
+}
+input:focus,select:focus{border-color:var(--blue);background:var(--bg4)}
+select option{background:var(--bg3)}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+input[type=date]{color-scheme:dark}
+
+/* ══ CHARGE PREVIEW (progressive disclosure) ══ */
+.prev{background:var(--bg3);border-radius:var(--r);padding:10px;margin-top:8px;border:1px solid var(--border);display:none}
+.prev.show{display:block}
+.pr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px}
+.pr:last-child{border-bottom:none;padding-top:6px;font-weight:700;font-size:13px}
+.prl{color:var(--text3)}
+
+/* 4. BOTTOM-DOCKED STICKY FOOTER for primary actions */
+.sticky-footer{
+  position:fixed;bottom:calc(var(--nav-h) + var(--safe-bot));left:0;right:0;z-index:120;
+  background:rgba(8,12,16,.96);border-top:1px solid var(--border2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:10px 12px;
+  display:flex;gap:8px;
+  height:var(--footer-h);align-items:center;
+}
+
+/* ══ BUTTONS — 44px hit, visually slender ══ */
+/* 3. TAP TARGET: padding gives 44px height, visual can be leaner via line-height */
+.btn{
+  /* hit area ≥ 44px */
+  min-height:var(--hit);
+  /* visual: content is centered, padding provides the tap area */
+  padding:0 18px;
+  border-radius:var(--r);border:none;cursor:pointer;
+  font-size:14px;font-weight:600;font-family:var(--font);
+  white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  transition:filter .15s,transform .1s;flex:1;
+  letter-spacing:.1px;
+}
+.btn:active{filter:brightness(.85);transform:scale(.98)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-g{background:var(--green);color:#000}
+.btn-r{background:var(--red);color:#fff}
+.btn-o{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.btn-icon{flex:0 0 var(--hit);padding:0;min-width:var(--hit)}
+
+/* ══ HOLDINGS GRID ══ */
+.hg{display:grid;grid-template-columns:1fr;gap:8px}
+
+/* ── HOLDING CARD — compact 2-col label/value grid ── */
+.hcard{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--rl);overflow:hidden;
+}
+.hcard-accent{height:2px;background:var(--green)}
+.hcard.loss .hcard-accent{background:var(--red)}
+.hcard.neutral .hcard-accent{background:var(--text3)}
+
+/* Card summary row — always visible (critical 3-4 fields) */
+.hcard-summary{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 12px;cursor:pointer;user-select:none;gap:8px;
+  /* make it a tap target */
+  min-height:var(--hit);
+}
+.hcard-summary:active{background:var(--bg3)}
+.hsym{font-size:16px;font-weight:800;letter-spacing:-.4px}
+.hmeta{font-size:11px;color:var(--text2);margin-top:1px}
+.hcard-right{text-align:right;flex-shrink:0}
+.hcard-pnl{font-size:15px;font-weight:700;font-family:var(--mono)}
+.hcard-pct{font-size:11px;margin-top:1px}
+
+/* Chevron indicator */
+.chevron{
+  width:20px;height:20px;flex-shrink:0;color:var(--text3);
+  transition:transform .2s;display:flex;align-items:center;justify-content:center;
+}
+.hcard.open .chevron{transform:rotate(180deg)}
+
+/* Expanded detail — 2-col label/value grid */
+.hcard-detail{
+  display:none;padding:0 12px 12px;
+  border-top:1px solid var(--border);
+}
+.hcard.open .hcard-detail{display:block}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;margin-bottom:10px;padding-top:10px}
+.hg-row{padding:4px 0}
+.hg-l{font-size:10px;color:var(--text3);margin-bottom:1px;text-transform:uppercase;letter-spacing:.4px}
+.hg-v{font-size:13px;font-weight:600;font-family:var(--mono)}
+.holding-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--bg4);border-radius:20px;padding:4px 10px;
+  font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;
+}
+.days-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0}
+
+/* CMP control */
+.curr-block{background:var(--bg4);border-radius:var(--r);padding:9px 10px;margin-bottom:8px}
+.curr-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.curr-controls{display:flex;align-items:stretch;height:var(--hit);gap:0}
+.curr-btn{
+  width:var(--hit);background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text2);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  user-select:none;-webkit-user-select:none;font-family:var(--font);
+  transition:background .1s;
+}
+.curr-btn:first-child{border-radius:var(--r) 0 0 var(--r)}
+.curr-btn:last-child{border-radius:0 var(--r) var(--r) 0}
+.curr-btn:active{background:var(--blue);color:#fff}
+.curr-field{
+  flex:1;background:var(--bg);border:1px solid var(--blue);
+  border-left:none;border-right:none;color:var(--text);
+  font-size:16px;font-weight:700;font-family:var(--mono);
+  text-align:center;padding:8px 4px;outline:none;
+  min-width:0;-webkit-appearance:none;appearance:none;
+}
+.pnl-pill{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--bg4);border-radius:var(--r);padding:10px 12px;
+}
+.pp-lbl{font-size:10px;color:var(--text3);margin-bottom:2px;text-transform:uppercase;letter-spacing:.4px}
+.pp-val{font-size:15px;font-weight:800;font-family:var(--mono)}
+.tax-chip{font-size:10px;padding:3px 9px;border-radius:20px;display:inline-block;font-weight:600;margin-top:6px}
+.tc-stcg{background:rgba(212,134,15,.1);color:var(--amber);border:1px solid rgba(212,134,15,.2)}
+.tc-ltcg{background:rgba(61,145,212,.1);color:var(--blue);border:1px solid rgba(61,145,212,.2)}
+.tc-nil{background:rgba(68,85,106,.08);color:var(--text3);border:1px solid var(--border)}
+
+/* ══ TRANSACTION LIST — compact row cards ══ */
+
+/* 2. COMPACT LIST: row card with 2-col label/value grid */
+.tx-row{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:6px;overflow:hidden;
+}
+.tx-row-accent{width:3px;position:absolute;top:0;bottom:0;left:0;border-radius:2px 0 0 2px}
+
+/* Primary row — always visible */
+.tx-primary{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;
+  cursor:pointer;min-height:var(--hit);position:relative;
+}
+.tx-primary:active{background:var(--bg3)}
+.tx-badge-col{display:flex;flex-direction:column;align-items:flex-start;gap:4px;flex-shrink:0;min-width:52px}
+.tx-sym{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.tx-mid{flex:1;min-width:0}
+.tx-date{font-size:11px;color:var(--text3);letter-spacing:.2px}
+.tx-qty{font-size:12px;color:var(--text2);font-family:var(--mono)}
+.tx-right{text-align:right;flex-shrink:0}
+.tx-val{font-size:14px;font-weight:700;font-family:var(--mono)}
+.tx-fees{font-size:11px;color:var(--amber);font-family:var(--mono)}
+
+/* Expanded secondary — progressive disclosure */
+.tx-detail{
+  display:none;padding:0 11px 10px;
+  border-top:1px solid var(--border);
+}
+.tx-row.open .tx-detail{display:block}
+
+/* 2-col label/value grid inside expanded card */
+.tx-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 16px;font-size:12px;padding-top:8px;margin-bottom:10px}
+.tx-grid-l{color:var(--text3)}
+.tx-grid-v{text-align:right;font-family:var(--mono);font-weight:500}
+
+/* Inline action row */
+.tx-actions{display:flex;gap:6px;margin-top:2px}
+.tx-act-btn{
+  /* hit area = 44px */
+  min-height:var(--hit);flex:1;
+  border-radius:var(--r);border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);
+  font-size:12px;font-weight:600;font-family:var(--font);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:background .15s;
+}
+.tx-act-btn:active{background:var(--bg4)}
+.tx-act-btn.del{color:var(--red);border-color:rgba(232,64,64,.2)}
+
+/* ══ INLINE EDIT CARD ══ */
+.edit-card{
+  background:var(--bg3);border:1.5px solid var(--blue);
+  border-radius:var(--rl);padding:12px;margin-bottom:6px;
+}
+.edit-actions{display:flex;gap:8px;margin-top:10px}
+.edit-actions .btn{flex:1}
+
+/* ══ P&L VIEW ══ */
+.pnl-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:3px solid var(--green);
+  border-radius:var(--r);padding:10px 12px;margin-bottom:6px;
+}
+.pnl-card.loss{border-left-color:var(--red)}
+
+/* ══ BADGE ══ */
+.badge{
+  display:inline-flex;align-items:center;padding:2px 7px;
+  border-radius:4px;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;font-family:var(--font);
+}
+.b-buy{background:var(--green-dim);color:var(--green)}
+.b-sell{background:var(--red-dim);color:var(--red)}
+.b-stcg{background:rgba(212,134,15,.12);color:var(--amber)}
+.b-ltcg{background:rgba(61,145,212,.12);color:var(--blue)}
+.b-nil{background:rgba(68,85,106,.12);color:var(--text3)}
+
+/* ══ TAX TABLE ══ */
+.tax-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:.5rem}
+.tax-table th{background:var(--bg3);padding:7px 10px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.tax-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.tax-table tr:last-child td{border-bottom:none}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r)}
+
+/* ══ BOTTOM NAV ══ */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;z-index:150;
+  background:rgba(8,12,16,.97);border-top:1px solid var(--border2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:stretch;
+  height:calc(var(--nav-h) + var(--safe-bot));
+  padding-bottom:var(--safe-bot);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;border:none;background:transparent;
+  color:var(--text3);font-size:9px;font-family:var(--font);font-weight:600;
+  letter-spacing:.4px;text-transform:uppercase;
+  /* 44px hit area */
+  min-height:var(--hit);padding:6px 4px;
+  transition:color .15s;
+}
+.nav-item svg{width:20px;height:20px;stroke-width:1.7;transition:transform .15s}
+.nav-item.active{color:var(--blue)}
+.nav-item.active svg{transform:translateY(-1px)}
+.nav-item:active svg{transform:scale(.88)}
+
+/* Nav ADD button — highlighted */
+#nav2{
+  color:var(--blue);
+}
+#nav2.active{color:var(--green)}
+
+/* ══ TOAST ══ */
+.toast{
+  position:fixed;bottom:calc(var(--nav-h) + var(--safe-bot) + 8px);
+  right:10px;left:10px;max-width:380px;margin:0 auto;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:10px 14px;font-size:12px;color:var(--text);z-index:9999;
+  transform:translateY(16px);opacity:0;transition:all .22s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto}
+.ul{color:var(--blue);cursor:pointer;text-decoration:underline}
+
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text3);font-size:14px;line-height:1.7}
+
+/* ══ HIGH CONTRAST ══ */
+body.hc{--bg:#000;--bg2:#090909;--bg3:#111;--bg4:#1a1a1a;--text:#fff;--text2:#aaa;--text3:#666}
+
+/* ══ REFRESH HINT ══ */
+.refresh-hint{text-align:center;font-size:10px;color:var(--text3);padding:6px 0 4px;letter-spacing:.3px}
+
+/* ══ FILTER BAR ══ */
+.filter-bar{
+  display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;
+  scrollbar-width:none;
+}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-chip{
+  /* hit area */
+  min-height:var(--hit);
+  padding:0 12px;border-radius:20px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;
+  font-family:var(--font);cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:5px;
+  transition:background .15s,color .15s,border-color .15s;flex-shrink:0;
+}
+.filter-chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.filter-chip:active{filter:brightness(.88)}
+
+/* ══ FORM ROW-TYPE TOGGLE ══ */
+.type-toggle{display:flex;gap:0;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.type-opt{
+  flex:1;min-height:var(--hit);padding:0 8px;
+  background:var(--bg3);color:var(--text2);border:none;
+  font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;
+  transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;
+}
+.type-opt.buy-active{background:var(--green-dim);color:var(--green)}
+.type-opt.sell-active{background:var(--red-dim);color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ══ SIGN-IN SCREEN ══ -->
+<div id="signInScreen">
+  <div class="si-logo">📊</div>
+  <div class="si-title">Zerodha Portfolio</div>
+  <div class="si-sub">Sign in to sync your portfolio<br>across all your devices</div>
+  <button class="si-btn" onclick="signInWithGoogle()">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    Continue with Google
+  </button>
+  <div class="si-note">Your data is private and only accessible with your Google account.</div>
+  <div class="si-err" id="siErr"></div>
+</div>
+
+<!-- Pull-to-Refresh Indicator -->
+<div id="ptr-indicator"><div id="ptr-icon">↻</div></div>
+
+<!-- Top Header -->
+<div class="hdr">
+  <div class="logo">
+    <div class="logo-mark">Z</div>
+    <div>
+      <div class="logo-text">Portfolio</div>
+      <div class="logo-sub">FY 2026-27 · Tax Ready</div>
+    </div>
+  </div>
+  <div class="hdr-actions" style="gap:8px">
+    <div id="syncDot" title="Sync status"></div>
+    <button class="icon-btn" onclick="fetchAllCMPs()" id="cmpBtn" title="Fetch live prices">⟳</button>
+    <button class="icon-btn" onclick="openDataModal()" title="Export / Import data">⇅</button>
+    <button class="icon-btn" onclick="undoLast()" id="undoBtn" disabled title="Undo">↩</button>
+    <button class="icon-btn" onclick="toggleContrast()" id="ctBtn" title="Toggle contrast">☀</button>
+    <img id="userAvatar" onclick="handleSignOut()" title="Sign out">
+    <div id="userInitial" onclick="handleSignOut()" title="Sign out"></div>
+  </div>
+</div>
+
+<!-- Scrollable Root -->
+<div id="scroll-root">
+
+<!-- ══════════ PAGE 1: HOLDINGS ══════════ -->
+<div class="page active" id="page1">
+  <div class="refresh-hint">↓ pull to refresh</div>
+  <!-- Summary Strip -->
+  <div class="sum-scroll"><div class="sum-strip">
+    <div class="sc"><div class="sc-l">Invested</div><div class="sc-v bl" id="mInv">₹0</div></div>
+    <div class="sc"><div class="sc-l">Market Value</div><div class="sc-v bl" id="mMkt">—</div></div>
+    <div class="sc"><div class="sc-l">Unrealised P&L</div><div class="sc-v" id="mUnreal">—</div></div>
+    <div class="sc"><div class="sc-l">Realised P&L</div><div class="sc-v" id="mReal">₹0</div></div>
+    <div class="sc"><div class="sc-l">Total Charges</div><div class="sc-v amb" id="mChg">₹0</div></div>
+    <div class="sc"><div class="sc-l">Est. Tax (FY27)</div><div class="sc-v amb" id="mTax">₹0</div></div>
+  </div></div>
+
+  <div class="sdiv">Open Holdings</div>
+  <!-- 1. Progressive Disclosure: accordion cards -->
+  <div class="hg" id="holdGrid"><div class="empty">No open holdings yet.<br>Add a BUY transaction to begin.</div></div>
+</div>
+
+<!-- ══════════ PAGE 2: ADD TRANSACTION ══════════ -->
+<div class="page" id="page2">
+  <!-- Voice Input -->
+  <div class="voice-row" id="vbar" onclick="toggleVoice()">
+    <div class="mic" id="micBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+    </div>
+    <div style="flex:1">
+      <div class="vt" id="vtext">Tap to speak — voice entry</div>
+      <div class="vh" id="vhint">e.g. "Buy 50 INFY at 1800 on 10 April"</div>
+    </div>
+    <div class="waves" id="waveEl"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr"><div class="sec-title">Add Transaction</div></div>
+
+    <!-- BUY/SELL toggle — more thumb-friendly than a full select -->
+    <div class="type-toggle">
+      <button class="type-opt buy-active" id="optBuy" onclick="setTxType('BUY')">▲ BUY</button>
+      <button class="type-opt" id="optSell" onclick="setTxType('SELL')">▼ SELL</button>
+    </div>
+
+    <div class="fg">
+      <!-- 5. NATIVE INPUT TYPES -->
+      <div class="fg-full">
+        <div class="fl">Symbol</div>
+        <input id="txSym" type="text" inputmode="text" autocomplete="off" autocorrect="off"
+          autocapitalize="characters" spellcheck="false"
+          placeholder="RELIANCE, TCS, INFY…"
+          oninput="this.value=this.value.toUpperCase();updatePrev()">
+      </div>
+      <div>
+        <div class="fl">Qty</div>
+        <!-- type=number → numeric keypad -->
+        <input id="txQty" type="number" inputmode="numeric" min="1" step="1"
+          placeholder="100" oninput="updatePrev()">
+      </div>
+      <div>
+        <div class="fl">Price (₹)</div>
+        <!-- type=number + inputmode=decimal → decimal keyboard -->
+        <input id="txPrice" type="number" inputmode="decimal" min="0.01" step="0.01"
+          placeholder="2450.00" oninput="updatePrev()">
+      </div>
+      <div>
+        <div class="fl">Date</div>
+        <input id="txDate" type="date" onchange="updatePrev()">
+      </div>
+      <div>
+        <div class="fl">Exchange</div>
+        <select id="txExch" onchange="updatePrev()"><option>NSE</option><option>BSE</option></select>
+      </div>
+    </div>
+
+    <!-- Charge Preview (progressive disclosure — only shows when form has values) -->
+    <div class="prev" id="prevBox">
+      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Zerodha Equity Delivery — Charges</div>
+      <div class="pr"><span class="prl">Trade value</span><span id="pV">—</span></div>
+      <div class="pr"><span class="prl">STT (0.1%)</span><span id="pS">—</span></div>
+      <div class="pr"><span class="prl">Exchange charges</span><span id="pE">—</span></div>
+      <div class="pr"><span class="prl">SEBI + GST</span><span id="pG">—</span></div>
+      <div class="pr"><span class="prl">Stamp duty</span><span id="pT">—</span></div>
+      <div class="pr"><span class="prl">Total charges</span><span id="pC" style="color:var(--amber)">—</span></div>
+      <div class="pr"><span class="prl" id="pNlbl">Net outflow</span><span id="pN">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PAGE 3: TRANSACTIONS ══════════ -->
+<div class="page" id="page3">
+  <!-- Filter chips -->
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-chip active" onclick="setFilter('ALL',this)">All</button>
+    <button class="filter-chip" onclick="setFilter('BUY',this)">▲ Buy</button>
+    <button class="filter-chip" onclick="setFilter('SELL',this)">▼ Sell</button>
+  </div>
+  <div class="sdiv" id="tx-count-label">Transactions</div>
+  <!-- 2. Compact list with progressive disclosure -->
+  <div id="txList"><div class="empty">No transactions yet.</div></div>
+</div>
+
+<!-- ══════════ PAGE 4: P&L ══════════ -->
+<div class="page" id="page4">
+  <div id="pnlView"><div class="empty">Complete a BUY then SELL to see realised P&L.</div></div>
+</div>
+
+<!-- ══════════ PAGE 5: TAX GUIDE ══════════ -->
+<div class="page" id="page5">
+  <div class="panel">
+    <div class="sec-title" style="margin-bottom:10px">FY 2026-27 Capital Gains — Equity &amp; MF</div>
+    <div class="tbl-scroll">
+    <table class="tax-table">
+      <thead><tr><th>Type</th><th>Period</th><th>Rate</th><th>Exemption</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-stcg">STCG</span></td>
+          <td>&lt; 12 months</td>
+          <td style="color:var(--amber);font-weight:700">20%</td>
+          <td>Nil</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-ltcg">LTCG</span></td>
+          <td>≥ 12 months</td>
+          <td style="color:var(--blue);font-weight:700">12.5%</td>
+          <td>₹1.25L / FY</td>
+        </tr>
+        <tr>
+          <td colspan="4" style="color:var(--text3);font-size:11px;line-height:1.7">
+            Surcharge on LTCG capped at 15%. No indexation on equity. STT must be paid on both sides. Loss set-off: STCL offsets STCG &amp; LTCG; LTCL only offsets LTCG. Carry forward up to 8 years.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-title" style="margin-bottom:10px">New Tax Regime Slabs FY 2026-27</div>
+    <div class="tbl-scroll">
+    <table class="tax-table">
+      <thead><tr><th>Income Slab</th><th>Rate</th></tr></thead>
+      <tbody>
+        <tr><td>Up to ₹4 lakh</td><td style="color:var(--green);font-weight:700">Nil</td></tr>
+        <tr><td>₹4L – ₹8L</td><td style="font-weight:700">5%</td></tr>
+        <tr><td>₹8L – ₹12L</td><td style="font-weight:700">10%</td></tr>
+        <tr><td>₹12L – ₹16L</td><td style="font-weight:700">15%</td></tr>
+        <tr><td>₹16L – ₹20L</td><td style="font-weight:700">20%</td></tr>
+        <tr><td>₹20L – ₹24L</td><td style="font-weight:700">25%</td></tr>
+        <tr><td>Above ₹24L</td><td style="color:var(--red);font-weight:700">30%</td></tr>
+        <tr><td colspan="2" style="color:var(--text3);font-size:11px;line-height:1.7">
+          Rebate u/s 87A: Tax nil if total income ≤ ₹12L (new regime). Standard deduction ₹75,000 for salaried. STCG @ 20% &amp; LTCG @ 12.5% are flat rates.
+        </td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-title" style="margin-bottom:10px">Data Management</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-o" style="width:100%" onclick="exportData()">⬇ Export Portfolio JSON</button>
+      <button class="btn btn-o" style="width:100%" onclick="document.getElementById('importFile').click()">⬆ Import Portfolio JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+</div>
+
+</div><!-- /scroll-root -->
+
+<!-- 4. BOTTOM-DOCKED PRIMARY ACTIONS — sticky footer (Add page) -->
+<div class="sticky-footer" id="addFooter" style="display:none">
+  <button class="btn btn-g" id="footerBuyBtn" onclick="addTx('BUY')">＋ Buy</button>
+  <button class="btn btn-r" id="footerSellBtn" onclick="addTx('SELL')" style="display:none">－ Sell</button>
+  <button class="btn btn-o btn-icon" onclick="clearForm()" title="Clear">✕</button>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bnav">
+  <button class="nav-item active" id="nav1" onclick="showPage(1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    Holdings
+  </button>
+  <button class="nav-item" id="nav2" onclick="showPage(2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Add
+  </button>
+  <button class="nav-item" id="nav3" onclick="showPage(3)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Txns
+  </button>
+  <button class="nav-item" id="nav4" onclick="showPage(4)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    P&amp;L
+  </button>
+  <button class="nav-item" id="nav5" onclick="showPage(5)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Tax
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ EXPORT / IMPORT MODAL ══ -->
+<div class="modal-backdrop" id="dataModal" onclick="closeDataModal(event)">
+  <div class="modal">
+
+    <!-- Default view: choose export or import -->
+    <div id="modalMain">
+      <div class="modal-title">Data Transfer</div>
+      <div class="modal-sub">Move your portfolio data between browsers or devices</div>
+
+      <button class="modal-btn" onclick="exportData()">
+        <span class="mb-icon">⬇</span>
+        <span class="mb-text">Export data
+          <span class="mb-sub">Downloads a .json backup of all transactions &amp; prices</span>
+        </span>
+      </button>
+
+      <button class="modal-btn" onclick="showImportView()">
+        <span class="mb-icon">⬆</span>
+        <span class="mb-text">Import data
+          <span class="mb-sub">Load a previously exported .json file</span>
+        </span>
+      </button>
+
+      <button class="modal-close" onclick="closeDataModal()">Cancel</button>
+    </div>
+
+    <!-- Import view: drop zone + file picker -->
+    <div id="modalImport" style="display:none">
+      <div class="modal-title">Import Data</div>
+      <div class="modal-sub">Select your exported portfolio .json file</div>
+
+      <div class="drop-zone" id="dropZone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+        <div class="dz-icon">📂</div>
+        Tap to choose file
+        <div class="dz-hint">or drag &amp; drop your .json file here</div>
+      </div>
+
+      <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileSelect(event)">
+
+      <button class="modal-btn danger" onclick="showMergeConfirm()">
+        <span class="mb-icon">⚠</span>
+        <span class="mb-text">Replace all data
+          <span class="mb-sub">Overwrites existing transactions with imported file</span>
+        </span>
+      </button>
+
+      <button class="modal-close" onclick="showMainView()">← Back</button>
+    </div>
+
+    <!-- Merge confirm view -->
+    <div id="modalConfirm" style="display:none">
+      <div class="modal-title">Replace all data?</div>
+      <div class="modal-sub" id="confirmSub">This will permanently delete your current data and replace it with the imported file. This cannot be undone.</div>
+      <button class="modal-btn danger" id="confirmBtn" onclick="confirmImport()">
+        <span class="mb-icon">✓</span>
+        <span class="mb-text">Yes, replace data</span>
+      </button>
+      <button class="modal-close" onclick="showImportView()">← Back</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase SDKs — loaded here so they are guaranteed ready before main script -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ═══ FIREBASE INIT ═══
+const firebaseConfig = {
+  apiKey: "AIzaSyAVIhp5Nx5sEOXBSQVF-rZa5qCIMsZtEs4",
+  authDomain: "ortfolio-tracker-zerodha-pss.firebaseapp.com",
+  projectId: "ortfolio-tracker-zerodha-pss",
+  storageBucket: "ortfolio-tracker-zerodha-pss.firebasestorage.app",
+  messagingSenderId: "698112869288",
+  appId: "1:698112869288:web:3ba32d0020a218d8ad539d"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+
+let currentUser = null;
+let firestoreUnsub = null; // real-time listener unsubscribe handle
+
+// ═══ CORE STATE ═══
+let txs=[],hist=[],curPrices={},editId=null,recog=null,isListening=false,hc=false;
+let txFilter='ALL';
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('txDate').value=today;
+
+// ═══ SYNC STATUS ═══
+function setSyncDot(state){
+  const d=document.getElementById('syncDot');
+  d.className='';d.classList.add(state);
+  d.title={synced:'Synced with cloud',syncing:'Syncing…',error:'Sync error — offline?'}[state]||'';
+}
+
+// ═══ LOCAL STORAGE (offline fallback) ═══
+function loadLocal(){
+  try{
+    const d=localStorage.getItem('zTx3');
+    if(!d){const old=localStorage.getItem('zTx2')||localStorage.getItem('zTx');if(old){txs=JSON.parse(old);showToast('Previous data migrated!','ok')}}
+    else txs=JSON.parse(d);
+    curPrices=JSON.parse(localStorage.getItem('zCP3')||localStorage.getItem('zCP')||'{}');
+  }catch(e){txs=[];curPrices={}}
+}
+function saveLocal(){
+  try{localStorage.setItem('zTx3',JSON.stringify(txs));localStorage.setItem('zCP3',JSON.stringify(curPrices))}catch(e){}
+}
+
+// ═══ FIRESTORE SAVE ═══
+async function save(){
+  saveLocal(); // always keep local copy
+  if(!currentUser) return;
+  setSyncDot('syncing');
+  try{
+    await db.collection('users').doc(currentUser.uid).set({
+      txs, curPrices, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setSyncDot('synced');
+  }catch(e){
+    setSyncDot('error');
+    console.error('Firestore save error:',e);
+  }
+}
+
+// ═══ FIRESTORE REAL-TIME LISTENER ═══
+function startListener(uid){
+  if(firestoreUnsub) firestoreUnsub(); // detach old listener
+  firestoreUnsub = db.collection('users').doc(uid)
+    .onSnapshot(snap => {
+      if(!snap.exists) return; // first time user — no data yet
+      const data = snap.data();
+      txs       = data.txs       || [];
+      curPrices = data.curPrices || {};
+      saveLocal();
+      renderAll();
+      setSyncDot('synced');
+    }, err => {
+      console.error('Firestore listener error:',err);
+      setSyncDot('error');
+    });
+}
+
+// ═══ GOOGLE SIGN-IN ═══
+function signInWithGoogle(){
+  document.getElementById('siErr').textContent='';
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err=>{
+    document.getElementById('siErr').textContent = 'Sign-in failed. Please try again.';
+    console.error('Sign-in error:',err);
+  });
+}
+
+function handleSignOut(){
+  if(!confirm('Sign out of Portfolio Tracker?')) return;
+  if(firestoreUnsub) firestoreUnsub();
+  auth.signOut();
+}
+
+// ═══ AUTH STATE OBSERVER ═══
+auth.onAuthStateChanged(user => {
+  if(user){
+    currentUser = user;
+    // Show avatar or initial in header
+    const av=document.getElementById('userAvatar');
+    const ui=document.getElementById('userInitial');
+    if(user.photoURL){
+      av.src=user.photoURL; av.style.display='block'; ui.style.display='none';
+    } else {
+      ui.textContent=(user.displayName||user.email||'U')[0].toUpperCase();
+      ui.style.display='flex'; av.style.display='none';
+    }
+    // Hide sign-in screen
+    document.getElementById('signInScreen').style.display='none';
+    // Load local first for instant display, then Firestore takes over via listener
+    loadLocal(); renderAll();
+    startListener(user.uid);
+  } else {
+    currentUser = null;
+    if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
+    document.getElementById('userAvatar').style.display='none';
+    document.getElementById('userInitial').style.display='none';
+    document.getElementById('signInScreen').style.display='flex';
+    setSyncDot('');
+  }
+});
+
+// ═══ HELPERS ═══
+function fmt(n){return'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function daysBetween(d1,d2){return Math.round((new Date(d2)-new Date(d1))/86400000)}
+function daysFromNow(d){return daysBetween(d,today)}
+function daysLabel(d){
+  if(d===0)return'today';if(d===1)return'1d';
+  if(d<30)return d+'d';
+  if(d<365){const mo=Math.floor(d/30),dy=d%30;return mo+'mo'+(dy?' '+dy+'d':'')}
+  const yr=Math.floor(d/365),mo=Math.floor((d%365)/30);return yr+'yr'+(mo?' '+mo+'mo':'');
+}
+
+// ═══ ZERODHA CHARGES ═══
+function zcharges(price,qty,type,exch){
+  const tv=price*qty,stt=tv*.001,ec=exch==='NSE'?tv*.0000297:tv*.0000375,sebi=tv*.000001,gst=(ec+sebi)*.18,stamp=type==='BUY'?tv*.00015:0,total=stt+ec+sebi+gst+stamp;
+  return{tv,stt,ec,sebi,gst,stamp,total,net:type==='BUY'?tv+total:tv-total};
+}
+
+// ═══ TAX CLASSIFICATION ═══
+function hpInfo(buyDate){
+  const d=daysFromNow(buyDate);
+  if(d<365)return{label:'STCG 20%',cls:'b-stcg',days:d,rate:.20,type:'STCG'};
+  return{label:'LTCG 12.5%',cls:'b-ltcg',days:d,rate:.125,type:'LTCG'};
+}
+
+// ═══ HOLDINGS COMPUTATION ═══
+function computeHoldings(){
+  const m={};
+  const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  for(const tx of sorted){
+    if(!m[tx.sym])m[tx.sym]={lots:[],qty:0,invested:0,charges:0};
+    const h=m[tx.sym];
+    if(tx.type==='BUY'){
+      h.lots.push({qty:tx.qty,price:tx.price,date:tx.date,charges:tx.charges.total});
+      h.qty+=tx.qty;h.invested+=tx.charges.net;h.charges+=tx.charges.total;
+    }else{
+      let rem=tx.qty;
+      while(rem>0&&h.lots.length){
+        const lot=h.lots[0],used=Math.min(lot.qty,rem),frac=used/lot.qty;
+        h.qty-=used;h.invested-=used*lot.price;h.charges-=lot.charges*frac;
+        lot.qty-=used;rem-=used;if(lot.qty===0)h.lots.shift();
+      }
+    }
+  }
+  return m;
+}
+
+function computePnL(){
+  // Zerodha Tax P&L methodology:
+  // Buy Value  = raw price × qty (no charges)
+  // Sell Value = raw price × qty (no charges)
+  // Cost basis = FIFO lot matching on raw buy price × qty
+  // Holding period per lot = sell date − that lot's buy date
+  // STCG < 365 days, LTCG ≥ 365 days
+  const lots={};  // sym → [{qty, price, date}]
+  const sells=[];
+  const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  for(const tx of sorted){
+    if(!lots[tx.sym])lots[tx.sym]=[];
+    const pool=lots[tx.sym];
+
+    if(tx.type==='BUY'){
+      // Push a new FIFO lot: raw price, raw qty, buy date
+      pool.push({qty:tx.qty,price:tx.price,date:tx.date});
+    }else{
+      // FIFO consume lots to build per-sell breakdown
+      let remQty=tx.qty;
+      const proceeds=tx.charges.tv;  // raw sell value: price × qty
+
+      // Accumulate cb and days weighted across consumed lots
+      let totalCB=0;
+      // For holding period: use the oldest lot's buy date (matches Zerodha console)
+      const oldestDate=pool.length>0?pool[0].date:tx.date;
+      const d=daysBetween(oldestDate,tx.date);
+      const taxType=d<365?'STCG':'LTCG',taxRate=d<365?.20:.125;
+
+      while(remQty>0&&pool.length>0){
+        const lot=pool[0];
+        const used=Math.min(lot.qty,remQty);
+        totalCB+=used*lot.price;  // raw cost for this slice
+        lot.qty-=used;
+        remQty-=used;
+        if(lot.qty===0)pool.shift();
+      }
+
+      const cb=totalCB;
+      const pnl=proceeds-cb;
+      sells.push({sym:tx.sym,qty:tx.qty,date:tx.date,pnl,proceeds,cb,days:d,taxType,taxRate,id:tx.id});
+    }
+  }
+  return sells;
+}
+
+// ═══ FORM HELPERS ═══
+function parseNum(val){return parseFloat(String(val).replace(',','.').replace(/[^\d.]/g,''))||0}
+
+let _currentTxType='BUY';
+function setTxType(type){
+  _currentTxType=type;
+  document.getElementById('txType')||(()=>{})();
+  const buyBtn=document.getElementById('optBuy'),sellBtn=document.getElementById('optSell');
+  if(type==='BUY'){
+    buyBtn.classList.add('buy-active');sellBtn.classList.remove('sell-active');
+  }else{
+    sellBtn.classList.add('sell-active');buyBtn.classList.remove('buy-active');
+  }
+  // Update footer button visibility
+  const fb=document.getElementById('footerBuyBtn'),fs=document.getElementById('footerSellBtn');
+  if(type==='BUY'){fb.style.display='';fs.style.display='none'}
+  else{fb.style.display='none';fs.style.display=''}
+  updatePrev();
+}
+
+function updatePrev(){
+  const pr=parseNum(document.getElementById('txPrice').value);
+  const qt=parseInt(document.getElementById('txQty').value)||0;
+  const tp=_currentTxType,ex=document.getElementById('txExch').value;
+  const box=document.getElementById('prevBox');
+  if(!pr||!qt||pr<=0||qt<=0){box.classList.remove('show');return}
+  box.classList.add('show');
+  const c=zcharges(pr,qt,tp,ex);
+  document.getElementById('pV').textContent=fmt(c.tv);
+  document.getElementById('pS').textContent=fmt(c.stt);
+  document.getElementById('pE').textContent=fmt(c.ec);
+  document.getElementById('pG').textContent=fmt(c.sebi+c.gst);
+  document.getElementById('pT').textContent=fmt(c.stamp);
+  document.getElementById('pC').textContent=fmt(c.total);
+  const ne=document.getElementById('pN'),nl=document.getElementById('pNlbl');
+  ne.textContent=fmt(c.net);nl.textContent=tp==='BUY'?'Net outflow':'Net inflow';
+  ne.style.color=tp==='BUY'?'var(--red)':'var(--green)';
+}
+
+function addTx(type){
+  const sym=document.getElementById('txSym').value.trim().toUpperCase();
+  const qty=parseInt(document.getElementById('txQty').value)||0;
+  const price=parseNum(document.getElementById('txPrice').value);
+  const date=document.getElementById('txDate').value;
+  const exch=document.getElementById('txExch').value;
+  if(!sym||!qty||!price||!date){showToast('Fill all fields first','warn');return}
+  const c=zcharges(price,qty,type,exch);
+  hist.push(JSON.stringify(txs));
+  txs.unshift({id:Date.now(),type,sym,qty,price,date,exch,charges:c});
+  save();document.getElementById('undoBtn').disabled=false;
+  showToast(type+' '+qty+' '+sym+' @ '+fmt(price)+' added','ok');
+  clearForm();renderAll();showPage(3);
+}
+
+function deleteTx(id){
+  hist.push(JSON.stringify(txs));txs=txs.filter(t=>t.id!==id);save();
+  document.getElementById('undoBtn').disabled=hist.length===0;
+  renderAll();showToast('Deleted. <span class="ul" onclick="undoLast()">Undo</span>','warn');
+}
+
+function undoLast(){
+  if(!hist.length)return;
+  txs=JSON.parse(hist.pop());save();
+  document.getElementById('undoBtn').disabled=hist.length===0;
+  renderAll();showToast('↩ Undone');
+}
+
+function clearForm(){
+  document.getElementById('txSym').value='';
+  document.getElementById('txQty').value='';
+  document.getElementById('txPrice').value='';
+  document.getElementById('txDate').value=today;
+  document.getElementById('txExch').value='NSE';
+  document.getElementById('prevBox').classList.remove('show');
+  setTxType('BUY');
+}
+
+// ═══ FILTER ═══
+function setFilter(f,el){
+  txFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderTxList();
+}
+
+// ═══ HOLDING CARD ACCORDION TOGGLE ═══
+function toggleHcard(sym){
+  const card=document.getElementById('hcard_'+sym);
+  if(card)card.classList.toggle('open');
+}
+
+// ═══ RENDER HOLDINGS ═══
+function renderHoldings(){
+  const h=computeHoldings();
+  const syms=Object.keys(h).filter(s=>h[s].qty>0);
+  const grid=document.getElementById('holdGrid');
+  if(!syms.length){grid.innerHTML='<div class="empty">No open holdings.<br>Add a BUY transaction to begin.</div>';return}
+  grid.innerHTML=syms.map(sym=>{
+    const hd=h[sym],avgPrice=hd.qty>0?hd.invested/hd.qty:0;
+    const cp=curPrices[sym]||0,mktVal=cp*hd.qty,unreal=cp>0?mktVal-hd.invested:null,pct=cp>0&&hd.invested>0?((mktVal-hd.invested)/hd.invested)*100:null;
+    const firstBuyTx=[...txs].filter(t=>t.sym===sym&&t.type==='BUY').sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+    const fbd=firstBuyTx?firstBuyTx.date:today;
+    const hp=hpInfo(fbd);
+    const cardCls=unreal===null?'neutral':unreal>=0?'':'loss';
+    const taxEstimate=unreal!==null&&unreal>0?(hp.type==='LTCG'?Math.max(0,(unreal-125000))*hp.rate:unreal*hp.rate):0;
+    const pnlColor=unreal===null?'var(--text2)':unreal>=0?'var(--green)':'var(--red)';
+    const pctStr=pct!==null?(pct>=0?'+':'')+pct.toFixed(2)+'%':'—';
+    return`<div class="hcard ${cardCls}" id="hcard_${sym}">
+      <div class="hcard-accent"></div>
+      <!-- 1. Progressive Disclosure: tap summary row to expand -->
+      <div class="hcard-summary" onclick="toggleHcard('${sym}')">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span class="hsym">${sym}</span>
+            <span class="badge ${hp.cls}">${hp.label}</span>
+          </div>
+          <div class="hmeta">${hd.qty} sh · avg ₹${avgPrice.toFixed(2)}</div>
+        </div>
+        <div class="hcard-right">
+          <div class="hcard-pnl" style="color:${pnlColor}">${unreal!==null?fmt(unreal):'—'}</div>
+          <div class="hcard-pct" style="color:${pnlColor}">${pctStr}</div>
+        </div>
+        <div class="chevron">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+
+      <!-- Secondary detail — revealed on expand -->
+      <div class="hcard-detail">
+        <!-- 2. 2-col label/value grid -->
+        <div class="hgrid">
+          <div class="hg-row"><div class="hg-l">Invested</div><div class="hg-v">${fmt(hd.invested)}</div></div>
+          <div class="hg-row"><div class="hg-l">Charges</div><div class="hg-v amb">${fmt(hd.charges)}</div></div>
+          <div class="hg-row"><div class="hg-l">Market Value</div><div class="hg-v ${cp>0?'bl':''}">${cp>0?fmt(mktVal):'—'}</div></div>
+          <div class="hg-row"><div class="hg-l">Since</div><div class="hg-v" style="font-family:var(--font)">${fbd}</div></div>
+        </div>
+        <div class="holding-pill"><div class="days-dot"></div>${daysLabel(hp.days)} held</div>
+
+        <!-- CMP stepper -->
+        <div class="curr-block">
+          <div class="curr-label">Current Market Price (LTP)</div>
+          <div class="curr-controls">
+            <button class="curr-btn"
+              ontouchstart="cmpBtnTouchStart(event,'${sym}',-1)"
+              ontouchend="cmpBtnTouchEnd(event,'${sym}',-1)"
+              ontouchcancel="stopAdjust()"
+              onmousedown="startAdjust('${sym}',-1)"
+              onmouseup="stopAdjust()"
+              onmouseleave="stopAdjust()">−</button>
+            <input class="curr-field" inputmode="decimal" id="cp_${sym}" value="${cp||''}" placeholder="0.00"
+              oninput="handleCmpInput('${sym}',this)"
+              onblur="finalizeCmp('${sym}',this)">
+            <button class="curr-btn"
+              ontouchstart="cmpBtnTouchStart(event,'${sym}',1)"
+              ontouchend="cmpBtnTouchEnd(event,'${sym}',1)"
+              ontouchcancel="stopAdjust()"
+              onmousedown="startAdjust('${sym}',1)"
+              onmouseup="stopAdjust()"
+              onmouseleave="stopAdjust()">+</button>
+          </div>
+        </div>
+
+        ${unreal!==null?`<div class="pnl-pill">
+          <div><div class="pp-lbl">Unrealised P&L</div><div class="pp-val ${unreal>=0?'pos':'neg'}">${fmt(unreal)}</div></div>
+          <div style="text-align:right"><div class="pp-lbl">Est. Tax if sold</div><div class="pp-val amb">${taxEstimate>0?fmt(taxEstimate):'Nil'}</div></div>
+        </div>
+        <div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">
+          <span class="tax-chip ${hp.type==='STCG'?'tc-stcg':'tc-ltcg'}">${hp.type==='STCG'?'STCG 20% — held &lt;1yr':'LTCG 12.5% — held ≥1yr'}</span>
+          ${hp.type==='LTCG'?'<span class="tax-chip tc-nil">₹1.25L exemption/FY</span>':''}
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ CMP SCROLL GUARD ═══
+let adjustTimer,adjustInterval;
+let _scrollGuardActive=false,_scrollGuardTimer;
+(function(){
+  const root=document.getElementById('scroll-root');
+  root.addEventListener('scroll',()=>{
+    _scrollGuardActive=true;clearTimeout(_scrollGuardTimer);
+    _scrollGuardTimer=setTimeout(()=>{_scrollGuardActive=false},350);
+  },{passive:true});
+})();
+let _cmpTouchStartY=0,_cmpTouchStartX=0;
+function cmpBtnTouchStart(e,sym,dir){_cmpTouchStartY=e.touches[0].clientY;_cmpTouchStartX=e.touches[0].clientX}
+function cmpBtnTouchEnd(e,sym,dir){
+  if(_scrollGuardActive)return;
+  const dy=Math.abs(e.changedTouches[0].clientY-_cmpTouchStartY);
+  const dx=Math.abs(e.changedTouches[0].clientX-_cmpTouchStartX);
+  if(dy>10||dx>10)return;
+  e.preventDefault();startAdjust(sym,dir);setTimeout(stopAdjust,600);
+}
+function startAdjust(sym,dir){if(_scrollGuardActive)return;adjustPrice(sym,dir);adjustTimer=setTimeout(()=>{adjustInterval=setInterval(()=>adjustPrice(sym,dir),80)},400)}
+function stopAdjust(){clearTimeout(adjustTimer);clearInterval(adjustInterval)}
+function adjustPrice(sym,dir){
+  const cur=curPrices[sym]||0;
+  const step=cur>=1000?5:cur>=100?1:0.5;
+  const nv=Math.max(0,parseFloat((cur+dir*step).toFixed(2)));
+  curPrices[sym]=nv;
+  const inp=document.getElementById('cp_'+sym);if(inp)inp.value=nv||'';
+  save();renderHoldings();updateSummary();
+}
+function handleCmpInput(sym,el){
+  const v=parseFloat(el.value);if(!isNaN(v)&&v>=0){curPrices[sym]=v;save()}
+}
+function finalizeCmp(sym,el){
+  const v=parseFloat(el.value);
+  if(!isNaN(v)&&v>0){curPrices[sym]=v;save();renderHoldings();updateSummary()}
+}
+
+// ═══ RENDER TRANSACTIONS (compact accordion rows) ═══
+function toggleTxRow(id){
+  const row=document.getElementById('txrow_'+id);
+  if(row)row.classList.toggle('open');
+}
+
+function renderTxList(){
+  const list=document.getElementById('txList');
+  const label=document.getElementById('tx-count-label');
+  if(!txs.length){list.innerHTML='<div class="empty">No transactions yet.<br>Go to Add tab to record your first trade.</div>';label.textContent='Transactions';return}
+  const filtered=txFilter==='ALL'?txs:txs.filter(t=>t.type===txFilter);
+  label.textContent=`Transactions (${filtered.length}${txFilter!=='ALL'?' '+txFilter:''})`;
+  if(!filtered.length){list.innerHTML='<div class="empty">No '+txFilter+' transactions.</div>';return}
+  list.innerHTML=filtered.map(tx=>{
+    const d=daysFromNow(tx.date);
+    if(tx.id===editId)return renderEditCard(tx);
+    return`<div class="tx-row" id="txrow_${tx.id}">
+      <!-- Primary: always visible — symbol, badge, date, value -->
+      <div class="tx-primary" onclick="toggleTxRow(${tx.id})">
+        <div class="tx-badge-col">
+          <span class="tx-sym">${tx.sym}</span>
+          <span class="badge ${tx.type==='BUY'?'b-buy':'b-sell'}">${tx.type}</span>
+        </div>
+        <div class="tx-mid">
+          <div class="tx-date">${tx.date}</div>
+          <div class="tx-qty">${tx.qty} × ₹${tx.price.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-val">${fmt(tx.charges.tv)}</div>
+          <div class="tx-fees">${fmt(tx.charges.total)} fees</div>
+        </div>
+        <div class="chevron" style="color:var(--text3)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <!-- Secondary: expanded on tap — 2-col grid -->
+      <div class="tx-detail">
+        <div class="tx-grid">
+          <span class="tx-grid-l">Exchange</span><span class="tx-grid-v">${tx.exch}</span>
+          <span class="tx-grid-l">${tx.type==='BUY'?'Net outflow':'Net inflow'}</span><span class="tx-grid-v" style="color:${tx.type==='BUY'?'var(--red)':'var(--green)'}">${fmt(tx.charges.net)}</span>
+          <span class="tx-grid-l">STT</span><span class="tx-grid-v">${fmt(tx.charges.stt)}</span>
+          <span class="tx-grid-l">Exch charges</span><span class="tx-grid-v">${fmt(tx.charges.ec)}</span>
+          <span class="tx-grid-l">SEBI + GST</span><span class="tx-grid-v">${fmt(tx.charges.sebi+tx.charges.gst)}</span>
+          <span class="tx-grid-l">Stamp</span><span class="tx-grid-v">${fmt(tx.charges.stamp)}</span>
+          <span class="tx-grid-l">Held</span><span class="tx-grid-v" style="font-family:var(--font)">${daysLabel(d)} ago</span>
+        </div>
+        <div class="tx-actions">
+          <button class="tx-act-btn" onclick="startEditRow(${tx.id})">✎ Edit</button>
+          <button class="tx-act-btn del" onclick="deleteTx(${tx.id})">⊗ Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEditCard(tx){
+  return`<div class="edit-card">
+    <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:9px;text-transform:uppercase;letter-spacing:.5px">Editing: ${tx.sym}</div>
+    <div class="fg" style="margin-bottom:8px">
+      <div><div class="fl">Type</div><select id="es_type"><option${tx.type==='BUY'?' selected':''}>BUY</option><option${tx.type==='SELL'?' selected':''}>SELL</option></select></div>
+      <div><div class="fl">Exchange</div><select id="es_exch"><option${tx.exch==='NSE'?' selected':''}>NSE</option><option${tx.exch==='BSE'?' selected':''}>BSE</option></select></div>
+      <div class="fg-full"><div class="fl">Symbol</div><input id="es_sym" value="${tx.sym}" autocapitalize="characters" style="text-transform:uppercase"></div>
+      <div><div class="fl">Qty</div><input type="number" inputmode="numeric" id="es_qty" value="${tx.qty}" min="1"></div>
+      <div><div class="fl">Price (₹)</div><input type="number" inputmode="decimal" id="es_price" value="${tx.price}" min="0.01" step="0.01"></div>
+      <div class="fg-full"><div class="fl">Date</div><input type="date" id="es_date" value="${tx.date}"></div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn btn-g" onclick="saveEditRow(${tx.id})">✓ Save</button>
+      <button class="btn btn-o" onclick="cancelEdit()">✕ Cancel</button>
+    </div>
+  </div>`;
+}
+
+function startEditRow(id){if(editId&&editId!==id)cancelEdit();editId=id;renderTxList()}
+function saveEditRow(id){
+  const tx=txs.find(t=>t.id===id);if(!tx)return;
+  const sym=(document.getElementById('es_sym').value||'').toUpperCase().trim();
+  const qty=parseInt(document.getElementById('es_qty').value)||0;
+  const price=parseNum(document.getElementById('es_price').value);
+  const date=document.getElementById('es_date').value;
+  const type=document.getElementById('es_type').value;
+  const exch=document.getElementById('es_exch').value;
+  if(!sym||!qty||!price||!date){showToast('Fill all fields','warn');return}
+  hist.push(JSON.stringify(txs));
+  const c=zcharges(price,qty,type,exch);
+  Object.assign(tx,{sym,qty,price,date,type,exch,charges:c});
+  save();editId=null;document.getElementById('undoBtn').disabled=false;
+  showToast('Updated','ok');renderAll();
+}
+function cancelEdit(){editId=null;renderTxList()}
+
+// ═══ RENDER P&L ═══
+function renderPnL(){
+  const sells=computePnL();const div=document.getElementById('pnlView');
+  if(!sells.length){div.innerHTML='<div class="empty">Add a SELL transaction<br>to see realised P&L.</div>';return}
+  const total=sells.reduce((s,x)=>s+x.pnl,0);
+  const stcgTotal=sells.filter(s=>s.taxType==='STCG').reduce((s,x)=>s+Math.max(0,x.pnl),0);
+  const ltcgTotal=sells.filter(s=>s.taxType==='LTCG').reduce((s,x)=>s+Math.max(0,x.pnl),0);
+  const stcgTax=stcgTotal*.20;
+  const ltcgTax=Math.max(0,(ltcgTotal-125000))*.125;
+  div.innerHTML=`
+  <div class="sum-scroll"><div class="sum-strip" style="margin-bottom:2px">
+    <div class="sc"><div class="sc-l">Realised P&L</div><div class="sc-v ${total>=0?'pos':'neg'}">${fmt(total)}</div></div>
+    <div class="sc"><div class="sc-l">STCG (20%)</div><div class="sc-v amb">${fmt(stcgTotal)}</div></div>
+    <div class="sc"><div class="sc-l">LTCG (12.5%)</div><div class="sc-v bl">${fmt(ltcgTotal)}</div></div>
+    <div class="sc"><div class="sc-l">Est. Total Tax</div><div class="sc-v amb">${fmt(stcgTax+ltcgTax)}</div></div>
+  </div></div>
+  <div class="sdiv">Trade-wise P&L</div>
+  ${sells.map(s=>{
+    const estTax=s.pnl>0?(s.taxType==='STCG'?s.pnl*.20:Math.max(0,s.pnl-125000)*.125):0;
+    return`<div class="pnl-card${s.pnl<0?' loss':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+        <div>
+          <div style="font-size:15px;font-weight:800">${s.sym}</div>
+          <div style="font-size:11px;color:var(--text3)">${s.date} · ${daysLabel(s.days)} held · ${s.qty} sh</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:15px;font-weight:800;color:${s.pnl>=0?'var(--green)':'var(--red)'};">${fmt(s.pnl)}</div>
+          <span class="badge ${s.taxType==='STCG'?'b-stcg':'b-ltcg'}">${s.taxType} ${s.taxType==='STCG'?'20%':'12.5%'}</span>
+        </div>
+      </div>
+      <div class="tx-grid">
+        <span class="tx-grid-l">Buy Value</span><span class="tx-grid-v">${fmt(s.cb)}</span>
+        <span class="tx-grid-l">Sell Value</span><span class="tx-grid-v">${fmt(s.proceeds)}</span>
+        <span class="tx-grid-l">Est. Tax</span><span class="tx-grid-v" style="color:var(--amber)">${estTax>0?fmt(estTax):'Nil'}</span>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+// ═══ UPDATE SUMMARY ═══
+function updateSummary(){
+  const h=computeHoldings();let inv=0,mkt=0,unreal=0,hasCP=false,estTaxUnreal=0;
+  for(const sym of Object.keys(h)){
+    if(h[sym].qty<=0)continue;
+    inv+=h[sym].invested;
+    const cp=curPrices[sym]||0;
+    if(cp>0){
+      const mv=cp*h[sym].qty;mkt+=mv;unreal+=mv-h[sym].invested;hasCP=true;
+      const fbt=[...txs].filter(t=>t.sym===sym&&t.type==='BUY').sort((a,b)=>new Date(a.date)-new Date(b.date))[0];
+      const hp=fbt?hpInfo(fbt.date):{type:'STCG',rate:.20};
+      const g=mv-h[sym].invested;
+      if(g>0)estTaxUnreal+=hp.type==='LTCG'?Math.max(0,(g-125000))*hp.rate:g*hp.rate;
+    }
+  }
+  const sells=computePnL();const real=sells.reduce((s,x)=>s+x.pnl,0);
+  const stcgT=sells.filter(s=>s.taxType==='STCG').reduce((s,x)=>s+Math.max(0,x.pnl),0)*.20;
+  const ltcgT=Math.max(0,sells.filter(s=>s.taxType==='LTCG').reduce((s,x)=>s+Math.max(0,x.pnl),0)-125000)*.125;
+  const allChg=txs.reduce((s,t)=>s+t.charges.total,0);
+  document.getElementById('mInv').textContent=fmt(inv);
+  const mv=document.getElementById('mMkt');mv.textContent=hasCP?fmt(mkt):'—';
+  const ur=document.getElementById('mUnreal');ur.textContent=hasCP?fmt(unreal):'—';ur.className='sc-v '+(hasCP?(unreal>=0?'pos':'neg'):'bl');
+  const rr=document.getElementById('mReal');rr.textContent=fmt(real);rr.className='sc-v '+(real>=0?'pos':'neg');
+  document.getElementById('mChg').textContent=fmt(allChg);
+  document.getElementById('mTax').textContent=fmt(stcgT+ltcgT+(hasCP?estTaxUnreal:0));
+}
+
+// ═══ LIVE PRICE FETCH (Google Apps Script → GOOGLEFINANCE) ═══
+const GF_URL='https://script.google.com/macros/s/AKfycbypQ3VoHhTwn0lOHxYpVWxQiAY-loTbaSET7SwTuh1lVTfzqpyxgB5zFUJelh0FKx3zhQ/exec';
+
+async function fetchAllCMPs(){
+  const h=computeHoldings();
+  const syms=Object.keys(h).filter(s=>h[s].qty>0);
+  if(!syms.length){showToast('No open holdings to fetch','warn');return}
+  const btn=document.getElementById('cmpBtn');
+  btn.classList.add('spinning');
+  showToast('Fetching live prices…','');
+  try{
+    const query=syms.map(s=>'NSE:'+s).join(',');
+    const res=await fetch(`${GF_URL}?syms=${encodeURIComponent(query)}`);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    let updated=0,failed=[];
+    for(const[key,price]of Object.entries(data)){
+      const sym=key.replace('NSE:','');
+      if(price&&typeof price==='number'&&price>0){curPrices[sym]=price;updated++;}
+      else failed.push(sym);
+    }
+    save();renderAll();
+    if(failed.length)showToast(`Updated ${updated} ✓  —  ${failed.join(', ')} not found`,'warn');
+    else showToast(`Live prices updated for ${updated} stock${updated>1?'s':''} ✓`,'ok');
+  }catch(err){
+    showToast('Could not reach price server. Try again.','warn');
+    console.error('fetchAllCMPs error:',err);
+  }finally{
+    btn.classList.remove('spinning');
+  }
+}
+
+function renderAll(){renderHoldings();renderTxList();renderPnL();updateSummary()}
+
+// ═══ PAGE NAVIGATION ═══
+let currentPage=1;
+function showPage(n){
+  currentPage=n;
+  for(let i=1;i<=5;i++){
+    document.getElementById('page'+i).classList.toggle('active',i===n);
+    document.getElementById('nav'+i).classList.toggle('active',i===n);
+  }
+  // 4. Show sticky footer only on Add page
+  const footer=document.getElementById('addFooter');
+  const root=document.getElementById('scroll-root');
+  if(n===2){footer.style.display='';root.classList.add('has-footer')}
+  else{footer.style.display='none';root.classList.remove('has-footer')}
+  document.getElementById('scroll-root').scrollTo({top:0,behavior:'smooth'});
+  if(n===3&&editId)cancelEdit();
+}
+
+// ═══ EXPORT / IMPORT ═══
+function exportData(){
+  const data={txs,curPrices,exportedAt:new Date().toISOString(),version:'v4'};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='portfolio_'+today+'.json';a.click();
+  showToast('Exported as JSON','ok');
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.txs&&Array.isArray(d.txs)){
+        hist.push(JSON.stringify(txs));txs=d.txs;
+        if(d.curPrices)curPrices=d.curPrices;
+        save();document.getElementById('undoBtn').disabled=false;
+        renderAll();showToast('Imported '+d.txs.length+' transactions','ok');
+      }else showToast('Invalid file format','warn');
+    }catch(err){showToast('Could not parse JSON','warn')}
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ═══ TOAST ═══
+let toastT;
+function showToast(msg,type){
+  clearTimeout(toastT);const t=document.getElementById('toast');
+  t.innerHTML=msg;
+  t.style.borderColor=type==='warn'?'var(--amber)':type==='ok'?'var(--green)':'var(--border2)';
+  t.classList.add('show');toastT=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ═══ CONTRAST ═══
+function toggleContrast(){
+  hc=!hc;document.body.classList.toggle('hc',hc);
+  document.getElementById('ctBtn').textContent=hc?'☽':'☀';
+}
+
+// ═══ VOICE INPUT ═══
+const MO={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12,jan:1,feb:2,mar:3,apr:4,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function parseVoice(text){
+  const t=text.toLowerCase(),type=t.includes('sell')?'SELL':'BUY';
+  const m1=t.match(/(?:buy|sell|bought|sold)\s+(\d+)\s+([a-z0-9]+)/i);
+  const m2=t.match(/at\s+([\d,]+(?:\.\d+)?)/i);
+  let sym='',qty=0,price=0,dateStr=today;
+  if(m1){qty=parseInt(m1[1]);sym=m1[2].toUpperCase()}
+  if(m2)price=parseFloat(m2[1].replace(',',''));
+  for(const[mn,mv]of Object.entries(MO)){
+    const re=new RegExp('(\\d{1,2})\\s+'+mn+'\\s*(\\d{4})?','i'),dm=t.match(re);
+    if(dm){const yr=dm[2]||new Date().getFullYear();dateStr=`${yr}-${String(mv).padStart(2,'0')}-${String(dm[1]).padStart(2,'0')}`;break}
+  }
+  if(sym&&qty&&price){
+    setTxType(type);
+    document.getElementById('txSym').value=sym;
+    document.getElementById('txQty').value=qty;document.getElementById('txPrice').value=price;
+    document.getElementById('txDate').value=dateStr;updatePrev();
+    showToast('Parsed: '+type+' '+qty+' '+sym+' @ ₹'+price,'ok');
+    showPage(2);
+  }else showToast('Could not parse. Try: "Buy 50 INFY at 1800 on 1 June"','warn');
+}
+function toggleVoice(){
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){showToast('Use Chrome for voice input','warn');return}
+  if(isListening){recog&&recog.stop();return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recog=new SR();recog.lang='en-IN';recog.continuous=false;recog.interimResults=false;
+  recog.onstart=()=>{isListening=true;document.getElementById('micBtn').classList.add('on');document.getElementById('vbar').classList.add('on');document.getElementById('waveEl').classList.add('on');document.getElementById('vtext').textContent='Listening…'};
+  recog.onresult=e=>{const tr=e.results[0][0].transcript;document.getElementById('vtext').textContent='Heard: "'+tr+'"';parseVoice(tr)};
+  recog.onerror=e=>{showToast('Voice error: '+e.error,'warn');resetVoice()};
+  recog.onend=()=>resetVoice();
+  recog.start();
+}
+function resetVoice(){isListening=false;['micBtn','vbar','waveEl'].forEach(id=>document.getElementById(id).classList.remove('on'));document.getElementById('vtext').textContent='Tap to speak — voice entry'}
+
+// ═══ PULL-TO-REFRESH ═══
+(function(){
+  const root=document.getElementById('scroll-root');
+  const ptr=document.getElementById('ptr-indicator');
+  const icon=document.getElementById('ptr-icon');
+  let startY=0,pulling=false,triggered=false;const THRESHOLD=70;
+  root.addEventListener('touchstart',e=>{if(root.scrollTop===0)startY=e.touches[0].clientY;else startY=0},{passive:true});
+  root.addEventListener('touchmove',e=>{
+    if(!startY)return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy>0&&root.scrollTop===0){
+      pulling=true;const progress=Math.min(dy,THRESHOLD*1.5);
+      ptr.style.height=progress*0.6+'px';
+      const ratio=Math.min(dy/THRESHOLD,1);
+      icon.style.transform=`scale(${0.5+ratio*0.5}) rotate(${ratio*180}deg)`;
+      icon.style.opacity=ratio;ptr.classList.toggle('pulling',dy>20);
+      if(dy>=THRESHOLD&&!triggered)triggered=true;
+    }
+  },{passive:true});
+  root.addEventListener('touchend',()=>{
+    if(triggered){
+      ptr.classList.add('refreshing');ptr.style.height='48px';
+      setTimeout(()=>{renderAll();showToast('Refreshed','ok');ptr.style.height='0';ptr.classList.remove('pulling','refreshing');icon.style.opacity='0';triggered=false;pulling=false;startY=0},800);
+    }else{ptr.style.height='0';ptr.classList.remove('pulling');icon.style.opacity='0';pulling=false;startY=0;triggered=false}
+  });
+})();
+
+// ═══ SERVICE WORKER ═══
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ═══ EXPORT / IMPORT ═══
+let pendingImportData = null;
+
+function openDataModal(){
+  showMainView();
+  document.getElementById('dataModal').classList.add('open');
+}
+function closeDataModal(e){
+  if(e && e.target !== document.getElementById('dataModal')) return;
+  document.getElementById('dataModal').classList.remove('open');
+  pendingImportData = null;
+  document.getElementById('fileInput').value = '';
+}
+function showMainView(){
+  document.getElementById('modalMain').style.display='';
+  document.getElementById('modalImport').style.display='none';
+  document.getElementById('modalConfirm').style.display='none';
+}
+function showImportView(){
+  document.getElementById('modalMain').style.display='none';
+  document.getElementById('modalImport').style.display='';
+  document.getElementById('modalConfirm').style.display='none';
+}
+function showMergeConfirm(){
+  if(!pendingImportData){showToast('Please select a file first','warn');return}
+  const count = pendingImportData.txs ? pendingImportData.txs.length : 0;
+  document.getElementById('confirmSub').textContent =
+    `The file contains ${count} transaction${count!==1?'s':''} and will permanently replace your current data. This cannot be undone.`;
+  document.getElementById('modalMain').style.display='none';
+  document.getElementById('modalImport').style.display='none';
+  document.getElementById('modalConfirm').style.display='';
+}
+
+// ── Export ──
+function exportData(){
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    txs: txs,
+    curPrices: curPrices
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `portfolio-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('dataModal').classList.remove('open');
+  showToast(`Exported ${txs.length} transactions ✓`, 'ok');
+}
+
+// ── File handling ──
+function handleFileSelect(e){
+  const file = e.target.files[0];
+  if(file) readImportFile(file);
+}
+function onDragOver(e){
+  e.preventDefault();
+  document.getElementById('dropZone').classList.add('dragover');
+}
+function onDragLeave(){
+  document.getElementById('dropZone').classList.remove('dragover');
+}
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(file) readImportFile(file);
+}
+function readImportFile(file){
+  if(!file.name.endsWith('.json')){showToast('Please select a .json file','warn');return}
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!data.txs || !Array.isArray(data.txs)) throw new Error('Invalid format');
+      pendingImportData = data;
+      const dz = document.getElementById('dropZone');
+      dz.innerHTML = `<div class="dz-icon">✅</div>${file.name}<div class="dz-hint">${data.txs.length} transactions found — tap Replace to continue</div>`;
+      showToast(`File loaded: ${data.txs.length} transactions found`,'ok');
+    }catch(err){
+      showToast('Invalid file. Please use an exported portfolio .json','warn');
+      pendingImportData = null;
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Confirm import ──
+function confirmImport(){
+  if(!pendingImportData){showToast('No file selected','warn');return}
+  txs       = pendingImportData.txs       || [];
+  curPrices = pendingImportData.curPrices || {};
+  hist      = []; // clear undo history
+  save();
+  renderAll();
+  document.getElementById('dataModal').classList.remove('open');
+  pendingImportData = null;
+  document.getElementById('fileInput').value = '';
+  showToast(`Imported ${txs.length} transactions ✓`, 'ok');
+}
+
+// ═══ INIT ═══
+// renderAll() is triggered by auth.onAuthStateChanged above after sign-in.
+// If somehow auth is slow, show empty state gracefully.
+setTimeout(()=>{ if(!currentUser) return; renderAll(); }, 3000);
+</script>
+</body>
+</html>
