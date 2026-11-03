@@ -1,0 +1,25 @@
+{
+ "name": "Trade P&L Calculator",
+ "short_name": "Trade P&L",
+ "description": "Profit, loss and breakeven for stock trades",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#f2f5fa",
+ "theme_color": "#1d4ed8",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any maskable"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}

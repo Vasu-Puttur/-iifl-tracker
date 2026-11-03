@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trade P&amp;L and Breakeven Calculator</title>
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trade P&amp;L">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<style>
+:root{
+  --bg:#f2f5fa;--surface:#ffffff;--soft:#e8edf6;--line:#d8dfec;--text:#111a2e;--muted:#5d6985;
+  --accent:#1d4ed8;--accent-soft:#e6eeff;--on-accent:#ffffff;--pos:#0b8f63;--neg:#d23b34;--be:#a8680f;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1222;--surface:#141d34;--soft:#1d2845;--line:#2a3659;--text:#e8ecf8;--muted:#8e9abb;
+    --accent:#6ea8ff;--accent-soft:#1a2b55;--on-accent:#0b1222;--pos:#3ddc9f;--neg:#ff7a72;--be:#f2b84b;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1222;--surface:#141d34;--soft:#1d2845;--line:#2a3659;--text:#e8ecf8;--muted:#8e9abb;
+  --accent:#6ea8ff;--accent-soft:#1a2b55;--on-accent:#0b1222;--pos:#3ddc9f;--neg:#ff7a72;--be:#f2b84b;color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  min-height:100vh;overflow-x:hidden;padding-bottom:24px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:20}
+.num{font-variant-numeric:tabular-nums}
+.app{max-width:980px;margin:0 auto;padding:14px 14px 8px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+h1{font-size:1.25rem;font-weight:750;letter-spacing:-.02em}
+header p{font-size:.82rem;color:var(--muted)}
+.icons{display:flex;gap:8px;flex:none}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);height:40px;padding:0 12px;border-radius:12px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}
+.grid{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.grid>*{min-width:0}
+.live{position:sticky;top:env(safe-area-inset-top,0px);z-index:15}
+@media(min-width:860px){
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"in live" "in more";align-items:start;gap:14px}
+  .inputs{grid-area:in}.live{grid-area:live;position:static}.more{grid-area:more}
+}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px}
+h2{font-size:1.05rem;font-weight:700}
+.sub{font-size:.85rem;color:var(--muted);margin:2px 0 16px}
+.group{margin-bottom:16px}
+.lbl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.9rem;font-weight:650;margin-bottom:7px}
+.lbl small{font-weight:400;color:var(--muted);font-size:.78rem}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--soft);border-radius:12px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--muted);padding:9px 6px;border-radius:9px;font:inherit;font-size:.86rem;font-weight:650;cursor:pointer;line-height:1.2}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.seg button small{display:block;font-weight:400;font-size:.72rem;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:9px 15px;border-radius:999px;font:inherit;font-size:.88rem;font-weight:600;cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.field{position:relative}
+.field span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;pointer-events:none}
+.field.suffix span{left:auto;right:14px}
+input[type=number]{width:100%;min-width:0;height:52px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;color:var(--text);font:inherit;font-size:1.1rem;font-weight:650;padding:0 14px}
+.field:not(.suffix):not(.plain) input{padding-left:30px}
+.field.suffix input{padding-right:34px}
+input[type=number]:placeholder-shown{border:2px solid var(--accent);background:var(--accent-soft);font-weight:500}
+input[type=number]::placeholder{color:var(--muted);opacity:.8;font-weight:400;font-size:.95rem}
+input[type=number]:focus{border-color:var(--accent);outline:3px solid var(--accent-soft)}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tools{margin-top:10px}
+input[type=range]{width:100%;accent-color:var(--accent);height:30px;margin:4px 0 2px;display:block}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{border:1px solid var(--line);background:var(--bg);color:var(--text);padding:7px 11px;border-radius:9px;font:inherit;font-size:.8rem;font-weight:650;cursor:pointer}
+.quick button.be{color:var(--be);border-color:var(--be)}
+.opts{border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--bg)}
+.opts summary{list-style:none;cursor:pointer;padding:13px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:650;font-size:.92rem}
+.opts summary::-webkit-details-marker{display:none}
+.opts summary small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.opts summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);flex:none;margin-right:4px;transition:transform .2s}
+.opts[open] summary::after{transform:rotate(-135deg)}
+.opts .body{padding:2px 0 14px}
+.opts .group:last-child{margin-bottom:0}
+.hint{font-size:.78rem;color:var(--muted);margin-bottom:4px}
+/* live result */
+.live .panel{box-shadow:0 6px 18px rgba(10,20,50,.12);padding:14px 16px}
+.live .t{font-size:.86rem;color:var(--muted);font-weight:650}
+.live .v{font-size:clamp(1.8rem,8.2vw,2.7rem);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:2px 0;color:var(--accent);overflow-wrap:anywhere}
+.live .s{font-size:.84rem;color:var(--muted)}
+.mini{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.mini small{display:block;font-size:.74rem;color:var(--muted)}
+.mini b{display:block;font-size:1.08rem;font-weight:750;overflow-wrap:anywhere}
+.mini div:last-child{text-align:right}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:32px}
+.done{border:0;background:var(--accent);color:var(--on-accent);height:32px;padding:0 16px;border-radius:99px;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.idle{color:var(--text)}
+/* breakeven gauge */
+.be-top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.be-top .t{font-size:.9rem;font-weight:650}
+.be-top .t small{display:block;font-weight:400;color:var(--muted);font-size:.76rem}
+.be-top .v{font-size:1.5rem;font-weight:780;color:var(--be);letter-spacing:-.02em;text-align:right}
+.be-top .v small{display:block;font-size:.76rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.track{position:relative;height:8px;border-radius:99px;background:var(--soft);margin:26px 10px 14px}
+.seg-fill{position:absolute;top:0;bottom:0;border-radius:99px;opacity:.85;transition:left .2s,width .2s}
+.dot{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;transform:translate(-50%,-50%);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);transition:left .2s}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.78rem;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.more details{margin-top:14px;border-top:1px solid var(--line)}
+.more summary{list-style:none;cursor:pointer;padding:13px 0 4px;font-weight:650;font-size:.92rem;display:flex;justify-content:space-between}
+.more summary::-webkit-details-marker{display:none}
+.more summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:4px 4px 0 0;transition:transform .2s}
+.more details[open] summary::after{transform:rotate(-135deg)}
+.list{font-size:.92rem}
+.list div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.list div:last-child{border-bottom:0}
+.list span:first-child{color:var(--muted);flex:1;min-width:0}
+.list b{font-weight:650;flex:none}
+.list .total span:first-child{color:var(--text);font-weight:650}
+.copy{width:100%;height:46px;margin-top:12px;border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:650;cursor:pointer}
+.foot{font-size:.76rem;color:var(--muted);text-align:center;padding:16px 8px 4px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(12px);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.tip{margin-top:12px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:16px;padding:12px 14px;font-size:.88rem;display:flex;flex-direction:column;gap:6px}
+.tip b{font-size:.92rem}.tip span{color:var(--muted)}
+.tip .acts{display:flex;gap:8px;margin-top:4px}
+.tip button{border:0;border-radius:99px;height:34px;padding:0 16px;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;background:var(--accent);color:var(--on-accent)}
+.tip button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>Trade P&amp;L calculator</h1><p>Profit, loss and breakeven in seconds</p></div>
+    <div class="icons">
+      <button class="icon-btn" id="reset" aria-label="Clear all inputs">Clear</button>
+      <button class="icon-btn" id="theme" aria-label="Switch light or dark theme">Theme</button>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="live" aria-live="polite" aria-label="Result">
+      <div class="panel">
+        <div class="toprow"><div class="t" id="hT">Profit or loss before tax</div><button class="done" id="done" type="button" hidden>Done</button></div>
+        <div class="v num" id="hV">&mdash;</div>
+        <div class="s num" id="hS">Enter your buy price and quantity to begin</div>
+        <div class="mini num" id="mini" hidden>
+          <div><small>Breakeven sell price</small><b id="miBe" style="color:var(--be)">&#8377;0.00</b></div>
+          <div><small>Net after tax</small><b id="miNet">&mdash;</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel inputs" aria-label="Trade details">
+      <h2>Your trade</h2>
+      <p class="sub">Fill in the highlighted boxes. Everything else is already set up.</p>
+
+      <div class="group">
+        <div class="lbl">Broker</div>
+        <div class="chips" id="brokers"></div>
+      </div>
+
+      <div class="group">
+        <div class="row2">
+          <div><div class="lbl">Buy price</div><div class="field"><span>&#8377;</span><input type="number" id="buy" inputmode="decimal" step="any" min="0" placeholder="e.g. 100"></div></div>
+          <div><div class="lbl">Quantity</div><div class="field plain"><input type="number" id="qty" inputmode="numeric" step="1" min="0" placeholder="e.g. 10"></div></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="lbl">Sell price <small id="move">to see profit or loss</small></div>
+        <div class="field"><span>&#8377;</span><input type="number" id="sell" inputmode="decimal" step="any" min="0" placeholder="e.g. 110"></div>
+        <div class="tools" id="tools" hidden>
+          <input type="range" id="slider" min="-30" max="50" step="0.1" aria-label="Sell price as percent above or below buy price">
+          <div class="quick" id="quick"></div>
+        </div>
+      </div>
+
+      <details class="opts">
+        <summary><span>Charges and tax options<small id="optsum"></small></span></summary>
+        <div class="body">
+          <div class="group">
+            <div class="lbl">Charges basis</div>
+            <div class="seg" id="basis">
+              <button data-v="contract">Contract note<small>All-in charges</small></button>
+              <button data-v="tax">Tax filing<small>Brokerage only</small></button>
+            </div>
+          </div>
+          <div class="group">
+            <div class="lbl">Holding period</div>
+            <div class="seg" id="term">
+              <button data-v="STCG">Under 1 year<small>20% tax</small></button>
+              <button data-v="LTCG">Over 1 year<small>12.5% tax</small></button>
+            </div>
+          </div>
+          <div class="group">
+            <div class="lbl">Charge rates <small>Edit to use your own</small></div>
+            <div class="row2">
+              <div><div class="hint">Buy</div><div class="field suffix plain"><input type="number" id="rb" inputmode="decimal" step="any" min="0" aria-label="Buy charges percent"><span>%</span></div></div>
+              <div><div class="hint">Sell</div><div class="field suffix plain"><input type="number" id="rs" inputmode="decimal" step="any" min="0" aria-label="Sell charges percent"><span>%</span></div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel more" id="more" hidden>
+      <div class="be-top">
+        <div class="t">Breakeven sell price<small>No profit, no loss</small></div>
+        <div class="v num" id="beV">&#8377;0.00<small id="beS"></small></div>
+      </div>
+      <div class="track" id="track"><div class="seg-fill" id="fill"></div></div>
+      <div class="legend" id="legend"></div>
+      <details>
+        <summary>See full breakdown</summary>
+        <div class="list num" id="list"></div>
+      </details>
+      <button class="copy" id="copy">Copy summary</button>
+    </section>
+  </main>
+  <div class="tip" id="tip" hidden><b>Keep it on your phone like an app</b><span id="tipTxt"></span><div class="acts"><button id="tipInstall" hidden>Install app</button><button class="ghost" id="tipX">Got it</button></div></div>
+  <p class="foot">Indicative only. Rates are approximate; surcharge, cess and the annual LTCG exemption are not included.</p>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var RATES={
+    contract:{IIFL:[0.4,0.4],Kotak:[0.356,0.34],Zerodha:[0.1185,0.104],Groww:[0.15,0.15],Upstox:[0.144,0.124]},
+    tax:{IIFL:[0.4,0.4],Kotak:[0.255,0.239],Zerodha:[0,0],Groww:[0,0],Upstox:[0,0]}
+  };
+  var TAX={STCG:0.20,LTCG:0.125};
+  var KEY='tradecalc_v2';
+  var DEF={basis:'contract',broker:'Zerodha',rb:0.1185,rs:0.104,buy:'',qty:'',sell:'',term:'STCG'};
+  var S=Object.assign({},DEF);
+  var $=function(id){return document.getElementById(id)};
+
+  try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==='object')Object.assign(S,o)}}catch(e){}
+  try{var th=localStorage.getItem('tradecalc_theme');if(th)document.documentElement.setAttribute('data-theme',th)}catch(e){}
+
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+  function n(v){var x=parseFloat(v);return isFinite(x)&&x>0?x:0}
+  function inr(x,sign){
+    var a=Math.abs(x).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var s=x<0&&Math.abs(x)>=0.005?'\u2212':(sign&&x>=0.005?'+':'');
+    return s+'\u20B9'+a;
+  }
+  function pct(x,sign){return (x<0?'\u2212':(sign&&x>0?'+':''))+Math.abs(x).toFixed(2)+'%'}
+
+  Object.keys(RATES.contract).forEach(function(b){
+    var c=document.createElement('button');c.className='chip';c.textContent=b;c.dataset.v=b;$('brokers').appendChild(c);
+  });
+  $('quick').innerHTML=[-5,5,10,20].map(function(p){return '<button data-p="'+p+'">'+(p>0?'+':'\u2212')+Math.abs(p)+'%</button>'}).join('')+'<button class="be" data-be="1">Breakeven</button>';
+
+  function applyBroker(){
+    if(S.broker!=='Custom'&&RATES[S.basis][S.broker]){S.rb=RATES[S.basis][S.broker][0];S.rs=RATES[S.basis][S.broker][1]}
+  }
+  function syncInputs(){$('rb').value=S.rb;$('rs').value=S.rs;$('buy').value=S.buy;$('qty').value=S.qty;$('sell').value=S.sell}
+  function syncSlider(){var b=n(S.buy),s=n(S.sell);$('slider').value=(b&&s)?Math.max(-30,Math.min(50,(s/b-1)*100)):0}
+  function setSell(v){S.sell=String(Math.round(v*100)/100);$('sell').value=S.sell;syncSlider()}
+
+  function calc(){
+    var b=n(S.buy),q=n(S.qty),s=n(S.sell),rb=n(S.rb)/100,rs=n(S.rs)/100,r={b:b,q:q,s:s};
+    r.be=rs<1?b*(1+rb)/(1-rs):0;
+    r.buyVal=b*q;r.sellVal=s*q;r.bFee=r.buyVal*rb;r.sFee=r.sellVal*rs;
+    r.cost=r.buyVal+r.bFee;r.proceeds=r.sellVal-r.sFee;
+    r.has=b>0&&q>0&&s>0;
+    r.pre=r.has?r.proceeds-r.cost:0;
+    r.tax=r.pre>0?r.pre*TAX[S.term]:0;
+    r.post=r.pre-r.tax;
+    return r;
+  }
+
+  function render(){
+    var r=calc();
+    document.querySelectorAll('#basis button').forEach(function(x){x.classList.toggle('on',x.dataset.v===S.basis)});
+    document.querySelectorAll('#term button').forEach(function(x){x.classList.toggle('on',x.dataset.v===S.term)});
+    document.querySelectorAll('#brokers .chip').forEach(function(x){x.classList.toggle('on',x.dataset.v===S.broker)});
+    $('optsum').textContent=(S.broker==='Custom'?'Custom rates':S.broker)+' \u00B7 '+(S.basis==='tax'?'Tax filing':'Contract note')+' \u00B7 '+(S.term==='LTCG'?'Over 1 year':'Under 1 year');
+
+    $('tools').hidden=!r.b;$('more').hidden=!r.b;$('mini').hidden=!r.b;
+    $('move').textContent=r.b&&r.s?pct((r.s/r.b-1)*100,true)+' vs buy price':'to see profit or loss';
+
+    /* headline: profit or loss BEFORE tax */
+    $('hT').textContent=!r.has?'Profit or loss before tax':(r.pre>=0?'Profit before tax':'Loss before tax');
+    $('hV').textContent=r.has?inr(r.pre,true):'\u2014';
+    $('hS').textContent=r.has?pct(r.pre/r.cost*100,true)+' on '+inr(r.cost)+' invested':
+      (!r.b?'Enter your buy price and quantity to begin':(!r.q?'Now enter the quantity':'Add a sell price to see profit or loss'));
+
+    $('miBe').textContent=r.b?inr(r.be):'';
+    var cls=!r.has?'idle':(r.post>=0.005?'pos':(r.post<=-0.005?'neg':'idle'));
+    $('miNet').className=cls;
+    $('miNet').textContent=r.has?inr(r.post,true):'\u2014';
+
+    $('beV').firstChild.nodeValue=r.b?inr(r.be):'\u20B90.00';
+    $('beS').textContent=r.b?pct((r.be/r.b-1)*100,true)+' above buy price':'';
+
+    var tr=$('track');tr.querySelectorAll('.dot').forEach(function(d){d.remove()});
+    if(r.b){
+      var vals=[r.b,r.be].concat(r.s?[r.s]:[]);
+      var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals),span=hi-lo,pad=Math.max(span*0.25,r.b*0.01);
+      var pos=function(v){return(v-lo+pad)/(span+2*pad)*100};
+      var mk=function(v,col){var d=document.createElement('div');d.className='dot';d.style.left=pos(v)+'%';d.style.background=col;tr.appendChild(d)};
+      var f=$('fill'),sc=r.s>=r.be?'var(--pos)':'var(--neg)';
+      if(r.s){var a=Math.min(r.be,r.s),z=Math.max(r.be,r.s);f.style.left=pos(a)+'%';f.style.width=(pos(z)-pos(a))+'%';f.style.background=sc}else{f.style.width='0'}
+      mk(r.b,'var(--muted)');mk(r.be,'var(--be)');if(r.s)mk(r.s,sc);
+      $('legend').innerHTML='<span><i style="background:var(--muted)"></i>Buy '+inr(r.b)+'</span><span><i style="background:var(--be)"></i>Breakeven '+inr(r.be)+'</span>'+(r.s?'<span><i style="background:'+sc+'"></i>Sell '+inr(r.s)+'</span>':'');
+    }
+
+    var rows=[['Turnover (buy + sell)',inr(r.buyVal+r.sellVal)],['Buy charges',inr(r.bFee)],['Sell charges',inr(r.sFee)],
+      ['Total cost (incl. charges)',inr(r.cost)],['Sale proceeds (after charges)',inr(r.proceeds)],
+      ['Profit or loss before tax',inr(r.pre,true)],['Capital gains tax ('+(TAX[S.term]*100)+'%)',inr(r.tax)]];
+    if(!r.has)rows=[rows[1],rows[3]];
+    $('list').innerHTML=rows.map(function(x){return '<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join('')+
+      (r.has?'<div class="total"><span>Net after tax</span><b class="'+cls+'">'+inr(r.post,true)+'</b></div>':'');
+    save();
+  }
+
+  function toast(t){var e=$('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show')},1800)}
+
+  $('basis').onclick=function(e){var v=e.target.closest('button');if(!v)return;S.basis=v.dataset.v;applyBroker();syncInputs();render()};
+  $('term').onclick=function(e){var v=e.target.closest('button');if(!v)return;S.term=v.dataset.v;render()};
+  $('brokers').onclick=function(e){var v=e.target.closest('button');if(!v)return;S.broker=v.dataset.v;applyBroker();syncInputs();render()};
+  ['rb','rs'].forEach(function(id){$(id).addEventListener('input',function(){S[id]=this.value;S.broker='Custom';render()})});
+  ['buy','qty'].forEach(function(id){$(id).addEventListener('input',function(){S[id]=this.value;syncSlider();render()})});
+  $('sell').addEventListener('input',function(){S.sell=this.value;syncSlider();render()});
+  $('slider').addEventListener('input',function(){var b=n(S.buy);if(!b)return;setSell(b*(1+parseFloat(this.value)/100));render()});
+  $('quick').onclick=function(e){
+    var v=e.target.closest('button');if(!v)return;var r=calc();if(!r.b)return;
+    if(v.dataset.be)setSell(Math.ceil(r.be*100)/100);else setSell(r.b*(1+parseFloat(v.dataset.p)/100));
+    render();
+  };
+  $('theme').onclick=function(){
+    var cur=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('tradecalc_theme',next)}catch(e){}
+  };
+  $('reset').onclick=function(){S=Object.assign({},DEF);syncInputs();syncSlider();render();toast('Inputs cleared')};
+  $('copy').onclick=function(){
+    var r=calc();
+    var t=['Trade summary ('+(S.broker==='Custom'?'custom rates':S.broker)+')',
+      'Buy: '+inr(r.b)+' x '+r.q,
+      r.s?'Sell: '+inr(r.s):'Sell: not entered',
+      'Breakeven sell price: '+inr(r.be),
+      r.has?'Profit or loss before tax: '+inr(r.pre,true):'',
+      r.has?'Net after tax: '+inr(r.post,true):''].filter(Boolean).join('\n');
+    function ok(){toast('Summary copied')}
+    function fb(){var a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){toast('Copy not available')}a.remove()}
+    try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
+  };
+
+  /* keyboard handling: close it when entry is finished */
+  var fields=document.querySelectorAll('input[type=number]');
+  function isField(el){return el&&el.matches&&el.matches('input[type=number]')}
+  function closeKeyboard(){var a=document.activeElement;if(isField(a))a.blur()}
+  fields.forEach(function(f){
+    f.setAttribute('enterkeyhint','done');
+    f.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();f.blur()}});
+    f.addEventListener('focus',function(){$('done').hidden=false});
+    f.addEventListener('blur',function(){setTimeout(function(){if(!isField(document.activeElement))$('done').hidden=true},120)});
+  });
+  $('done').addEventListener('pointerdown',function(e){e.preventDefault();closeKeyboard();$('done').hidden=true});
+  $('done').addEventListener('click',function(){closeKeyboard();$('done').hidden=true});
+  document.addEventListener('click',function(e){if(!e.target.closest('input[type=number]')&&!e.target.closest('#done'))closeKeyboard()});
+
+  /* home-screen tip */
+  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  var touch=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  var ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var dismissed=false;try{dismissed=localStorage.getItem('tradecalc_tip')==='1'}catch(e){}
+  var deferred=null;
+  function showTip(){
+    if(standalone||dismissed||!touch)return;
+    $('tipTxt').textContent=ios?'Tap the Share button in Safari, then choose Add to Home Screen. You will get an app icon that opens this calculator directly.':'Tap the \u22EE menu in Chrome, then choose Add to Home screen or Install app. You will get an app icon that opens this calculator directly.';
+    $('tip').hidden=false;
+  }
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferred=e;$('tipInstall').hidden=false;showTip();$('tipTxt').textContent='Install it to get an app icon that opens this calculator directly.'});
+  $('tipInstall').onclick=function(){if(deferred){deferred.prompt();deferred=null;$('tipInstall').hidden=true}};
+  $('tipX').onclick=function(){$('tip').hidden=true;try{localStorage.setItem('tradecalc_tip','1')}catch(e){}};
+  showTip();
+
+  if(!RATES[S.basis])S.basis='contract';
+  if(!TAX[S.term])S.term='STCG';
+  if(S.broker!=='Custom'&&!RATES[S.basis][S.broker])S.broker='Zerodha';
+  applyBroker();syncInputs();syncSlider();render();
+})();
+  if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
